@@ -1,0 +1,93 @@
+.defaulthome-container {
+  width: 100vw;
+  height: 100vh;
+  background-image: url('/3436801_20252.jpg'); /* correct public path */
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.defaulthome-link {
+  margin-bottom: 10px;
+  font-weight: bold;
+  color: black;
+  text-decoration: none;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+
+.defaulthome-link:hover {
+  text-decoration: underline;
+}
+
+/* Add smaller image style for DefaultHome if any image is added later */
+.defaulthome-image {
+  width: 200px;
+  height: auto;
+}
+
+@keyframes wiggle {
+  0% { transform: rotate(0deg); }
+  15% { transform: rotate(15deg); }
+  30% { transform: rotate(-15deg); }
+  45% { transform: rotate(10deg); }
+  60% { transform: rotate(-10deg); }
+  75% { transform: rotate(5deg); }
+  100% { transform: rotate(0deg); }
+}
+
+.wiggle {
+  animation: wiggle 0.5s ease-in-out;
+}
+
+.wiggle-fast {
+  animation: wiggle 0.167s ease-in-out;
+}
+
+.glow {
+  animation: glow 0.5s ease-in-out;
+  box-shadow: 0 0 15px 5px yellow;
+}
+
+@keyframes glow {
+  0% {
+    box-shadow: 0 0 0px 0px yellow;
+  }
+  50% {
+    box-shadow: 0 0 20px 10px yellow;
+  }
+  100% {
+    box-shadow: 0 0 0px 0px yellow;
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.pulse {
+  animation: pulse 0.5s ease-in-out;
+}
+
+.emotion-icons img {
+  height: 150px;
+  width: auto;
+  margin-right: 10px;
+}
+
+.emotion-icons img:last-child {
+  margin-right: 100;
+}

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head><title>Whisper Test</title></head>
+<body>
+  <button onclick="testAPI()">Test Transcribe</button>
+  <pre id="output"></pre>
+
+  <script>
+    function testAPI() {
+      const formData = new FormData();
+      formData.append('audio', new Blob(['test'], { type: 'audio/wav' }), 'test.wav');
+
+      fetch('https://chatty-news-speak.loca.lt', {
+        method: 'POST',
+        body: formData
+      })
+      .then(res => res.json())
+      .then(data => document.getElementById('output').textContent = JSON.stringify(data, null, 2))
+      .catch(err => document.getElementById('output').textContent = '❌ Error: ' + err.message);
+    }
+  </script>
+</body>
+</html>

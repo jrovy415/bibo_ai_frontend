@@ -1,0 +1,24 @@
+Analysis of question.png click handlers in tutorial-related files:
+
+1. DefaultHome.jsx:
+- Clicking question.png triggers speakText with the message "click any topic you want to learn!"
+- Shows a sequence of click images (click.png) with timed visibility to guide the user visually.
+
+2. IntroLetters.jsx:
+- Clicking question.png triggers speakText with the message "Click anything, they will tell you about the letter A!"
+- Shows a sequence of click images (click.png) with timed visibility to guide the user visually.
+
+3. Letters.jsx:
+- Clicking question.png triggers speakText with the message "Help the big letter find the small letter! Click big letter, then click any small letter!"
+- Shows a sequence of click images (click.png) with timed visibility to guide the user visually.
+
+4. LetterSp.jsx:
+- Clicking question.png triggers speakText with the message "Let's practice reading! Click the letter for a hint, then click the button if you want to speak!"
+- Shows a sequence of click images (click.png) with timed visibility to guide the user visually.
+
+Summary:
+- In all tutorial-related components, clicking the question.png icon triggers an audio instruction via text-to-speech.
+- Visual click animations are shown sequentially to guide the user on what to do next.
+- This provides an interactive demo or tutorial feature to help users understand how to use the component.
+
+This consistent pattern forms the core of the tutorial/demo feature in the app.
