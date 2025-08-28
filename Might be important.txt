@@ -1,0 +1,8 @@
+Capacitor Installation:
+https://claude.ai/share/fcdc929a-dc99-40f3-ad0d-d20669995908
+
+Keystore:
+
+Key store password: sample1-main-keystore
+Key alias: key0
+Key password: sample1-main-keystore
