@@ -9,7 +9,11 @@ export const useAuth = () => {
   const navigate = useNavigate();
 
   async function login(payload: any) {
-    const response = await axios.post("/auth/login", payload);
+    setLoading(true);
+
+    const response = await axios.post("/auth/login", payload).finally(() => {
+      setLoading(false);
+    });
 
     window.localStorage.setItem("APP_TOKEN", response.data.token);
 
@@ -23,7 +27,7 @@ export const useAuth = () => {
     } catch (e) {
       console.error(e);
     } finally {
-      navigate("/login");
+      navigate("/");
     }
   }
 

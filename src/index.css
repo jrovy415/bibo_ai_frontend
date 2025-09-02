@@ -82,7 +82,8 @@
   background: linear-gradient(45deg, #10f136, #10b0ff);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  text-shadow: none; /* Remove blur effect */
+  text-shadow: none;
+  /* Remove blur effect */
   position: absolute;
   top: 50%;
   left: 50%;
@@ -97,10 +98,13 @@
     transform: translate(-50%, -50%) scale(1);
     opacity: 1;
   }
+
   50% {
     transform: translate(-50%, -50%) scale(1.2);
-    opacity: 1; /* Remove fading effect */
+    opacity: 1;
+    /* Remove fading effect */
   }
+
   100% {
     transform: translate(-50%, -50%) scale(1);
     opacity: 1;

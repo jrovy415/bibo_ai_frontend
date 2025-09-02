@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { speakText } from './ttsUtil';
 import { MdHeadset } from 'react-icons/md';
 import { useAuth } from "../composables/useAuth"
-
+import { Button } from "antd";
 
 export default function Login() {
   const [activeTab, setActiveTab] = useState('Student');
@@ -28,7 +28,7 @@ export default function Login() {
   const navigate = useNavigate();
   const hiButtonRef = useRef(null);
 
-  const { authUser, loading, login, logout, getUser } = useAuth();
+  const { loading, login } = useAuth();
 
   useEffect(() => {
     // Removed animation effect for moving click and mouse images as unnecessary
@@ -51,7 +51,13 @@ export default function Login() {
   // Handle teacher form submission with basic validation
   const handleTeacherSubmit = async (e) => {
     console.log("handleTeacherSubmit called");
-    await login(username, password);
+
+    await login(
+      {
+        username: username,
+        password: password,
+      }
+    );
   };
 
   const activeColor = '#a8d5a2'; // lighter green
@@ -204,7 +210,6 @@ export default function Login() {
           padding: '0.5rem 1.5rem',
           boxShadow: '0 4px 8px rgba(255, 111, 97, 0.6)',
           animationTimingFunction: 'ease-in-out',
-          zIndex: 1001,
           transition: 'transform 0.2s ease-in-out',
         }}
         aria-label="Introduce OpenAI Whisper"
@@ -604,23 +609,18 @@ export default function Login() {
                 required
                 style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc', marginBottom: '1rem', width: '100%' }}
               />
-              <button
-                type="button"
+              <Button
+                type="primary"
                 style={{
-                  padding: '0.75rem',
                   backgroundColor: "green",
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
                   width: '100%',
                 }}
                 disabled={loading}
-                loading={loading ? 1 : 0}
+                loading={loading}
                 onClick={activeTab === 'Student' ? handleStudentSubmit : handleTeacherSubmit}
               >
                 Login
-              </button>
+              </Button>
             </div>
           )}
         </div>

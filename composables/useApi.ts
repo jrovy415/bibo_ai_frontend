@@ -46,24 +46,13 @@ export const useApi = <T>(endpoint: string) => {
       setPagination((prev) => ({ ...prev, ...options }));
 
       const currentPagination = { ...pagination, ...options };
-      const sort = currentPagination.sortBy?.[0] ?? { key: "", order: "" };
 
       const params = {
-        page: currentPagination.page,
-        limit: currentPagination.itemsPerPage,
-        sort_by_column: sort.key,
-        sort_by: sort.order,
-        relations: currentPagination.relations,
-        ...options,
+        // page: currentPagination.page,
+        // limit: currentPagination.itemsPerPage,
+        // relations: currentPagination.relations,
+        // ...options,
       };
-
-      delete params.sortBy;
-      delete params.itemsPerPage;
-
-      if (!sort.key && !sort.order) {
-        delete params.sort_by_column;
-        delete params.sort_by;
-      }
 
       const res = await axios.get(endpoint, { params });
 

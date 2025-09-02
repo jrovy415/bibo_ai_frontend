@@ -1,26 +1,12 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import Login from './Login.jsx'
-import Default from './DefaultHome.jsx'
-import BaseDefault from './Default.jsx'; //this is a default page with the background
-import IntroLetters from './IntroLetters.jsx';
-import Letters from './Letters.jsx'; 
-import IntroFood from './IntroFood.jsx';
-import FoodSp from './FoodSp.jsx';
-import FoodAct from './FoodAct.jsx';
-import Weather from './Weather.jsx';
-import Animal from './Animal.jsx'; 
-import IntroEmo from './IntroEmo.jsx';
-import EmoAct from './EmoAct.jsx';
-import EmoSp from './EmoSp.jsx';
-import LetterSp from './LetterSp.jsx';
-import TD2 from './TD2.jsx';
+import App from './App.jsx'
 
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <BrowserRouter>
+    <App />
+    {/* <BrowserRouter>
       <Routes>
         <Route path="/" element={<Login />} />  
         <Route path="/Animal" element={<Animal/>} />
@@ -38,6 +24,6 @@ createRoot(document.getElementById('root')).render(
         <Route path="/EmoAct" element={<EmoAct />} />
         <Route path="/TD2" element={<TD2 />} />
       </Routes>
-    </BrowserRouter>
+    </BrowserRouter> */}
   </StrictMode>
 );
