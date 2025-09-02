@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { speakText } from './ttsUtil';
 import { MdHeadset } from 'react-icons/md';
+import { useAuth } from "../composables/useAuth"
+
 
 export default function Login() {
   const [activeTab, setActiveTab] = useState('Student');
@@ -26,6 +28,8 @@ export default function Login() {
   const navigate = useNavigate();
   const hiButtonRef = useRef(null);
 
+  const { authUser, loading, login, logout, getUser } = useAuth();
+
   useEffect(() => {
     // Removed animation effect for moving click and mouse images as unnecessary
   }, [isSecondSentenceSpeaking]);
@@ -45,19 +49,9 @@ export default function Login() {
   };
 
   // Handle teacher form submission with basic validation
-  const handleTeacherSubmit = (e) => {
-    e.preventDefault();
-    if (!username.trim()) {
-      setTeacherError('Please enter your username.');
-      return;
-    }
-    if (!password) {
-      setTeacherError('Please enter your password.');
-      return;
-    }
-    setTeacherError('');
-    // TODO: Add real authentication logic here
-    navigate('/TD2');
+  const handleTeacherSubmit = async (e) => {
+    console.log("handleTeacherSubmit called");
+    await login(username, password);
   };
 
   const activeColor = '#a8d5a2'; // lighter green
@@ -257,25 +251,25 @@ export default function Login() {
               userSelect: 'none',
             }}
           >
-              <div
-                style={{
-                  fontSize: '1.5rem',
-                  fontWeight: 'bold',
-                  color: '#333',
-                  width: '80vw',
-                  height: '40rem',
-                  textAlign: 'justify',
-                  margin: 'auto',
-                  padding: '2rem',
-                  borderRadius: '12px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-                  whiteSpace: 'normal',
-                  overflowY: 'auto',
-                  display: 'block',
-                  textAlignLast: 'center',
-                }}
-              >
+            <div
+              style={{
+                fontSize: '1.5rem',
+                fontWeight: 'bold',
+                color: '#333',
+                width: '80vw',
+                height: '40rem',
+                textAlign: 'justify',
+                margin: 'auto',
+                padding: '2rem',
+                borderRadius: '12px',
+                backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                whiteSpace: 'normal',
+                overflowY: 'auto',
+                display: 'block',
+                textAlignLast: 'center',
+              }}
+            >
               <p style={{ margin: 0 }}>
                 {introFullText.split(' ').map((word, index, arr) => {
                   const isHighlighted = index === highlightedWordIndex;
@@ -311,74 +305,74 @@ export default function Login() {
           </div>
         </>
       )}
-          {showHeadphonesBox && (
-            <>
-              <div
-                style={{
-                  position: 'fixed',
-                  top: 0,
-                  left: 0,
-                  width: '100vw',
-                  height: '100vh',
-                  backgroundColor: 'rgba(0,0,0,0.3)',
-                  backdropFilter: 'blur(5px)',
-                  zIndex: 998,
-                }}
-                onClick={() => setShowHeadphonesBox(false)}
-              />
-              <div
-                style={{
-                  position: 'fixed',
-                  top: '50%',
-                  left: '50%',
-                  transform: 'translate(-50%, -50%)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '1.5rem',
-                  maxWidth: '60vw',
-                  padding: '2rem',
-                  borderRadius: '12px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-                  zIndex: 1000,
-                  userSelect: 'none',
-                }}
-              >
-              {/* Row 1 */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.2rem', color: '#333', whiteSpace: 'normal', textAlign: 'justify' }}>
-                  <MdHeadset size={32} color="#333" />
-                  <span>
-                    {headphonesTexts[0].split(' ').map((word, index) => {
-                      const globalWordIndex = index;
-                      const isHighlighted = globalWordIndex === currentStepWordIndex;
-                      return (
-                        <React.Fragment key={index}>
-                          <span
-                            style={{
-                              color: isHighlighted ? '#ff6f61' : '#333',
-                              transition: 'color 0.3s ease',
-                              display: 'inline',
-                            }}
-                          >
-                            {word}
-                          </span>
-                          {index !== headphonesTexts[0].split(' ').length - 1 && ' '}
-                        </React.Fragment>
-                      );
-                    })}
-                  </span>
-                </div>
-                <img
-                  src="/boywithHP.png"
-                  alt="Boy with Headphones"
-                  style={{ width: '18%', height: 'auto', objectFit: 'cover', borderRadius: '8px', alignSelf: 'center' }}
-                />
+      {showHeadphonesBox && (
+        <>
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100vw',
+              height: '100vh',
+              backgroundColor: 'rgba(0,0,0,0.3)',
+              backdropFilter: 'blur(5px)',
+              zIndex: 998,
+            }}
+            onClick={() => setShowHeadphonesBox(false)}
+          />
+          <div
+            style={{
+              position: 'fixed',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '1.5rem',
+              maxWidth: '60vw',
+              padding: '2rem',
+              borderRadius: '12px',
+              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+              zIndex: 1000,
+              userSelect: 'none',
+            }}
+          >
+            {/* Row 1 */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.2rem', color: '#333', whiteSpace: 'normal', textAlign: 'justify' }}>
+                <MdHeadset size={32} color="#333" />
+                <span>
+                  {headphonesTexts[0].split(' ').map((word, index) => {
+                    const globalWordIndex = index;
+                    const isHighlighted = globalWordIndex === currentStepWordIndex;
+                    return (
+                      <React.Fragment key={index}>
+                        <span
+                          style={{
+                            color: isHighlighted ? '#ff6f61' : '#333',
+                            transition: 'color 0.3s ease',
+                            display: 'inline',
+                          }}
+                        >
+                          {word}
+                        </span>
+                        {index !== headphonesTexts[0].split(' ').length - 1 && ' '}
+                      </React.Fragment>
+                    );
+                  })}
+                </span>
               </div>
+              <img
+                src="/boywithHP.png"
+                alt="Boy with Headphones"
+                style={{ width: '18%', height: 'auto', objectFit: 'cover', borderRadius: '8px', alignSelf: 'center' }}
+              />
+            </div>
 
-              {/* Row 2 */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
+            {/* Row 2 */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
               <div style={{ fontSize: '1.2rem', color: '#333', whiteSpace: 'normal', textAlign: 'justify' }}>
                 {headphonesTexts[1].split(' ').map((word, index) => {
                   const globalWordIndex = headphonesTexts[0].split(' ').length + index;
@@ -425,39 +419,39 @@ export default function Login() {
                   }}
                 />
               </div>
-              </div>
+            </div>
 
-              {/* Row 3 */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
-                <div style={{ fontSize: '1.2rem', color: '#333', whiteSpace: 'normal', textAlign: 'justify' }}>
-                  {headphonesTexts[2].split(' ').map((word, index) => {
-                    const globalWordIndex = headphonesTexts[0].split(' ').length + headphonesTexts[1].split(' ').length + index;
-                    const isHighlighted = globalWordIndex === currentStepWordIndex;
-                    return (
-                      <React.Fragment key={index}>
-                        <span
-                          style={{
-                            color: isHighlighted ? '#ff6f61' : '#333',
-                            transition: 'color 0.3s ease',
-                            display: 'inline',
-                          }}
-                        >
-                          {word}
-                        </span>
-                        {index !== headphonesTexts[2].split(' ').length - 1 && ' '}
-                      </React.Fragment>
-                    );
-                  })}
-                </div>
-                <img
-                  src="/BoySpeakToMic.png"
-                  alt="Boy Speak To Mic"
-                  style={{ width: '40%', height: 'auto', objectFit: 'cover', borderRadius: '8px', alignSelf: 'center' }}
-                />
+            {/* Row 3 */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
+              <div style={{ fontSize: '1.2rem', color: '#333', whiteSpace: 'normal', textAlign: 'justify' }}>
+                {headphonesTexts[2].split(' ').map((word, index) => {
+                  const globalWordIndex = headphonesTexts[0].split(' ').length + headphonesTexts[1].split(' ').length + index;
+                  const isHighlighted = globalWordIndex === currentStepWordIndex;
+                  return (
+                    <React.Fragment key={index}>
+                      <span
+                        style={{
+                          color: isHighlighted ? '#ff6f61' : '#333',
+                          transition: 'color 0.3s ease',
+                          display: 'inline',
+                        }}
+                      >
+                        {word}
+                      </span>
+                      {index !== headphonesTexts[2].split(' ').length - 1 && ' '}
+                    </React.Fragment>
+                  );
+                })}
               </div>
-              </div>
-            </>
-          )}
+              <img
+                src="/BoySpeakToMic.png"
+                alt="Boy Speak To Mic"
+                style={{ width: '40%', height: 'auto', objectFit: 'cover', borderRadius: '8px', alignSelf: 'center' }}
+              />
+            </div>
+          </div>
+        </>
+      )}
 
       <div
         style={{
@@ -524,7 +518,7 @@ export default function Login() {
           }}
         >
           {activeTab === 'Student' && (
-            <form onSubmit={handleStudentSubmit} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               <label htmlFor="nickname" style={{ marginBottom: '0.5rem', fontWeight: 'bold', textAlign: 'center', width: '100%' }}>
                 Nickname
               </label>
@@ -583,11 +577,11 @@ export default function Login() {
               >
                 Submit
               </button>
-            </form>
+            </div>
           )}
 
           {activeTab === 'Teacher' && (
-            <form onSubmit={handleTeacherSubmit} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               <label htmlFor="username" style={{ marginBottom: '0.5rem', fontWeight: 'bold', textAlign: 'center', width: '100%' }}>
                 Username
               </label>
@@ -610,22 +604,24 @@ export default function Login() {
                 required
                 style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc', marginBottom: '1rem', width: '100%' }}
               />
-              {teacherError && <p style={{ color: 'red', marginBottom: '1rem' }}>{teacherError}</p>}
               <button
-                type="submit"
+                type="button"
                 style={{
                   padding: '0.75rem',
-                  backgroundColor: activeColor,
+                  backgroundColor: "green",
                   color: 'white',
                   border: 'none',
                   borderRadius: '4px',
                   cursor: 'pointer',
                   width: '100%',
                 }}
+                disabled={loading}
+                loading={loading ? 1 : 0}
+                onClick={activeTab === 'Student' ? handleStudentSubmit : handleTeacherSubmit}
               >
                 Login
               </button>
-            </form>
+            </div>
           )}
         </div>
       </div>
@@ -656,6 +652,6 @@ export default function Login() {
           }
         `}
       </style>
-    </div>
+    </div >
   );
 }

@@ -9,28 +9,28 @@ const letters = [
   { text: "Bb", alt: "B", category: "wiggle" },
   { text: "Cc", alt: "C", category: "wiggle" },
   { text: "Dd", alt: "D", category: "wiggle" },
-  { text: "Ee", alt: "A", category: "wiggle" },
-  { text: "Ff", alt: "B", category: "wiggle" },
-  { text: "Gg", alt: "C", category: "wiggle" },
-  { text: "Hh", alt: "A", category: "wiggle" },
-  { text: "Ii", alt: "B", category: "wiggle" },
-  { text: "Jj", alt: "C", category: "wiggle" },
-  { text: "Kk", alt: "A", category: "wiggle" },
-  { text: "Ll", alt: "B", category: "wiggle" },
-  { text: "Mm", alt: "C", category: "wiggle" },
-  { text: "Nn", alt: "A", category: "wiggle" },
-  { text: "Oo", alt: "B", category: "wiggle" },
-  { text: "Pp", alt: "C", category: "wiggle" },
-  { text: "Qq", alt: "A", category: "wiggle" },
-  { text: "Rr", alt: "B", category: "wiggle" },
-  { text: "Ss", alt: "C", category: "wiggle" },
-  { text: "Tt", alt: "A", category: "wiggle" },
-  { text: "Uu", alt: "B", category: "wiggle" },
-  { text: "Vv", alt: "C", category: "wiggle" },
-  { text: "Ww", alt: "A", category: "wiggle" },
-  { text: "Xx", alt: "B", category: "wiggle" },
-  { text: "Yy", alt: "C", category: "wiggle" },
-  { text: "Zz", alt: "C", category: "wiggle" }
+  { text: "Ee", alt: "E", category: "wiggle" },
+  { text: "Ff", alt: "F", category: "wiggle" },
+  { text: "Gg", alt: "G", category: "wiggle" },
+  { text: "Hh", alt: "H", category: "wiggle" },
+  { text: "Ii", alt: "I", category: "wiggle" },
+  { text: "Jj", alt: "J", category: "wiggle" },
+  { text: "Kk", alt: "K", category: "wiggle" },
+  { text: "Ll", alt: "L", category: "wiggle" },
+  { text: "Mm", alt: "M", category: "wiggle" },
+  { text: "Nn", alt: "N", category: "wiggle" },
+  { text: "Oo", alt: "O", category: "wiggle" },
+  { text: "Pp", alt: "P", category: "wiggle" },
+  { text: "Qq", alt: "Q", category: "wiggle" },
+  { text: "Rr", alt: "R", category: "wiggle" },
+  { text: "Ss", alt: "S", category: "wiggle" },
+  { text: "Tt", alt: "T", category: "wiggle" },
+  { text: "Uu", alt: "U", category: "wiggle" },
+  { text: "Vv", alt: "V", category: "wiggle" },
+  { text: "Ww", alt: "W", category: "wiggle" },
+  { text: "Xx", alt: "X", category: "wiggle" },
+  { text: "Yy", alt: "Y", category: "wiggle" },
+  { text: "Zz", alt: "Z", category: "wiggle" }
 ];
 
 import { LOCAL_API_BASE_URL, REMOTE_API_BASE_URL } from './apiConfig';
@@ -136,7 +136,7 @@ const NextPage = () => {
       setIsProcessing(true);
       setError(null);
       setTranscription('');
-      
+
       const audioFile = new File([audioBlob], filename, {
         type: audioBlob.type,
         lastModified: Date.now()
@@ -154,7 +154,7 @@ const NextPage = () => {
             timeout: 30000
           }
         );
-      } catch (localError) {
+      } catch (error) {
         response = await axios.post(
           `${REMOTE_API_BASE_URL}/transcribe`,
           formData,
@@ -175,7 +175,7 @@ const NextPage = () => {
           duration: response.data.duration,
           processing_time: response.data.processing_time
         });
-      } catch (saveError) {
+      } catch (error) {
         try {
           await axios.post(`${REMOTE_API_BASE_URL}/save-transcription`, {
             text: response.data.text,
@@ -243,7 +243,7 @@ const NextPage = () => {
         style={{ position: 'absolute', top: 10, right: 10, width: 60, height: 60, zIndex: 1000, cursor: 'pointer' }}
         onClick={handleQuestionClick}
       />
-      
+
       {showClick1Image && (
         <img
           src="/click.png"
@@ -279,97 +279,97 @@ const NextPage = () => {
         />
       )}
 
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'flex-start',
+          gap: '60px',
+          flexWrap: 'wrap',
+          width: '100%',
+          maxWidth: '1000px',
+          margin: '0 auto',
+        }}
+      >
         <div
+          ref={firstBoxRef}
+          className="content"
           style={{
             display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'flex-start',
-            gap: '60px',
-            flexWrap: 'wrap',
-            width: '100%',
-            maxWidth: '1000px',
-            margin: '0 auto',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '20px',
+            flex: '1 1 400px',
+            backgroundColor: 'transparent',
           }}
         >
-          <div
-            ref={firstBoxRef}
-            className="content"
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '20px',
-              flex: '1 1 400px',
-              backgroundColor: 'transparent',
-            }}
-          >
-            {/* Back/forward buttons + letter display */}
-            <div className="back-forward-row" style={{ display: 'flex', justifyContent: 'center', gap: '200px' }}>
-              <img
-                src="/back.png"
-                alt="Back2"
-                className="back2-image"
-                style={{ width: '100px', height: '100px', cursor: 'pointer' }}
-                onClick={handlePrev}
-              />
-              <img
-                src="/forward.png"
-                alt="Forward2"
-                className="forward2-image"
-                style={{ width: '100px', height: '100px', cursor: 'pointer' }}
-                onClick={handleNext}
-              />
-            </div>
-            <div
-              style={{
-                fontSize: '300px',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                fontFamily: 'Comic Sans MS, cursive, sans-serif',
-                color: 'black',
-                textAlign: 'center',
-                userSelect: 'none',
-                animation: wiggle === letters[currentIndex].alt ? 'wiggle 0.5s ease-in-out' : 'none',
-              }}
-              onClick={() => handleTextClick(letters[currentIndex])}
-            >
-              {letters[currentIndex].text}
-            </div>
+          {/* Back/forward buttons + letter display */}
+          <div className="back-forward-row" style={{ display: 'flex', justifyContent: 'center', gap: '200px' }}>
+            <img
+              src="/back.png"
+              alt="Back2"
+              className="back2-image"
+              style={{ width: '100px', height: '100px', cursor: 'pointer' }}
+              onClick={handlePrev}
+            />
+            <img
+              src="/forward.png"
+              alt="Forward2"
+              className="forward2-image"
+              style={{ width: '100px', height: '100px', cursor: 'pointer' }}
+              onClick={handleNext}
+            />
           </div>
-
           <div
-            ref={speakButtonRef}
             style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              flex: '1 1 400px',
-              position: 'relative',
+              fontSize: '300px',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              fontFamily: 'Comic Sans MS, cursive, sans-serif',
+              color: 'black',
+              textAlign: 'center',
+              userSelect: 'none',
+              animation: wiggle === letters[currentIndex].alt ? 'wiggle 0.5s ease-in-out' : 'none',
             }}
+            onClick={() => handleTextClick(letters[currentIndex])}
           >
-            {/* Recording controls */}
-            <div className="recording-controls" style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: isProcessing || countdown !== null ? 'not-allowed' : 'pointer' }} onClick={() => {
-                if (isProcessing || countdown !== null) return;
-                if (status !== 'recording') {
-                  startCountdown();
-                } else {
-                  stopRecording();
-                }
-              }} aria-disabled={isProcessing || countdown !== null}>
-                <img
-                  src="/SpeakButton.png"
-                  alt="Speak Button"
-                  style={{
-                    width: '120px',
-                    height: 'auto',
-                    filter: status === 'recording' ? 'drop-shadow(0 0 10px #00ff00)' : 'none',
-                    transition: 'filter 0.3s ease-in-out',
-                    animation: 'none',
-                  }}
-                />
-                <span style={{ marginTop: '5px', fontSize: '1.1rem', fontWeight: 'bold', color: 'black', fontFamily: 'Comic Sans MS, cursive, sans-serif', userSelect: 'none', textShadow: '1px 1px 2px rgba(0,0,0,0.3)' }}>Start Reading!</span>
-              </div>
+            {letters[currentIndex].text}
+          </div>
+        </div>
+
+        <div
+          ref={speakButtonRef}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            flex: '1 1 400px',
+            position: 'relative',
+          }}
+        >
+          {/* Recording controls */}
+          <div className="recording-controls" style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: isProcessing || countdown !== null ? 'not-allowed' : 'pointer' }} onClick={() => {
+              if (isProcessing || countdown !== null) return;
+              if (status !== 'recording') {
+                startCountdown();
+              } else {
+                stopRecording();
+              }
+            }} aria-disabled={isProcessing || countdown !== null}>
+              <img
+                src="/SpeakButton.png"
+                alt="Speak Button"
+                style={{
+                  width: '120px',
+                  height: 'auto',
+                  filter: status === 'recording' ? 'drop-shadow(0 0 10px #00ff00)' : 'none',
+                  transition: 'filter 0.3s ease-in-out',
+                  animation: 'none',
+                }}
+              />
+              <span style={{ marginTop: '5px', fontSize: '1.1rem', fontWeight: 'bold', color: 'black', fontFamily: 'Comic Sans MS, cursive, sans-serif', userSelect: 'none', textShadow: '1px 1px 2px rgba(0,0,0,0.3)' }}>Start Reading!</span>
+            </div>
             {countdown !== null && (
               <div
                 style={{
@@ -394,17 +394,17 @@ const NextPage = () => {
                 {countdown}
               </div>
             )}
-              {error && <p className="error">{error}</p>}
-            </div>
-
-              {transcription && (
-                <div className="transcription" style={{ position: 'absolute', top: '100%', marginTop: '20px', fontWeight: 'bold', color: 'black', textAlign: 'justify', fontSize: '0.9rem', width: '100%' }}>
-                  <h3>You said:</h3>
-                  <p>{transcription}</p>
-                </div>
-              )}
+            {error && <p className="error">{error}</p>}
           </div>
+
+          {transcription && (
+            <div className="transcription" style={{ position: 'absolute', top: '100%', marginTop: '20px', fontWeight: 'bold', color: 'black', textAlign: 'justify', fontSize: '0.9rem', width: '100%' }}>
+              <h3>You said:</h3>
+              <p>{transcription}</p>
+            </div>
+          )}
         </div>
+      </div>
 
       <style>
         {`
