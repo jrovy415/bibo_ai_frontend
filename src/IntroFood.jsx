@@ -119,7 +119,7 @@ const IntroFood = () => {
   return (
     <div className="introfood-container" style={containerStyle}>
       {/* First set of arrows: Back and Forward */}
-      <Link to="/Default">
+      <Link to="/student">
         <img
           src="/back.png"
           alt="Back"
@@ -135,7 +135,7 @@ const IntroFood = () => {
           }}
         />
       </Link>
-      <Link to="/FoodSp">
+      <Link to="/student/food_sp">
         <img
           src="/forward.png"
           alt="Forward"

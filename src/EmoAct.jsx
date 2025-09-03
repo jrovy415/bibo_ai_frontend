@@ -88,7 +88,7 @@ const Default = () => {
 
   return (
     <div className="defaulthome-container" style={containerStyle}>
-      <Link to="/EmoSp">
+      <Link to="/student/emo_sp">
         <img
           src="/back.png"
           alt="Back"

@@ -7,19 +7,19 @@ const topics = [
   {
     title: 'Letters',
     description: 'Learn the alphabet from A to Z',
-    link: '/IntroLetters',
+    link: '/student/intro_letters',
     image: '/Aa.png'
   },
   {
     title: 'Go, Grow, and Glow foods',
     description: 'Explore different types of nutritious foods',
-    link: '/IntroFood',
+    link: '/student/intro_food',
     image: '/b-fruits.png'
   },
   {
     title: 'Basic Emotions',
     description: 'Understand and express different emotions',
-    link: '/IntroEmo',
+    link: '/student/intro_emo',
     image: '/happy.png'
   }
 ];
@@ -86,29 +86,26 @@ const DefaultHome = () => {
   const currentTopic = topics[currentIndex];
 
   return (
-    <div> 
-      <Link to="/" style={{ position: 'absolute', top: '50%', left: 10, transform: 'translateY(-50%)', zIndex: 1000 }}>
-        <img src="/back.png" alt="Back" style={{ width: 60, height: 60, borderRadius: '50%', objectFit: 'cover' }} />
-      </Link>
-      <img 
-        src="/question.png" 
-        alt="Question" 
+    <div>
+      <img
+        src="/question.png"
+        alt="Question"
         className={isClicked ? 'wiggle' : ''}
-        style={{ position: 'absolute', top: 10, right: 10, width: 60, height: 60, zIndex: 1000, cursor: 'pointer' }} 
+        style={{ position: 'absolute', top: 10, right: 10, width: 60, height: 60, zIndex: 1000, cursor: 'pointer' }}
         onClick={handleQuestionClick}
       />
       {showClickImage && (
-        <img 
-          src="/click.png" 
-          alt="Click" 
+        <img
+          src="/click.png"
+          alt="Click"
           className="click-imageDefault1"
-      style={{
-        position: 'fixed',
-        top: click1Pos.y,
-        left: click1Pos.x,
-        transform: 'translate(-50%, -50%)',
-        zIndex: 1000
-      }}
+          style={{
+            position: 'fixed',
+            top: click1Pos.y,
+            left: click1Pos.x,
+            transform: 'translate(-50%, -50%)',
+            zIndex: 1000
+          }}
         />
       )}
       {showClick2Image && (
@@ -126,16 +123,16 @@ const DefaultHome = () => {
         />
       )}
 
-      <div className="defaulthome-container" style={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
+      <div className="defaulthome-container" style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
         minHeight: '100vh',
         backgroundColor: 'transparent',
         position: 'relative'
       }}>
-        <div className="selected-topic" style={{ 
+        <div className="selected-topic" style={{
           textAlign: 'center',
           backgroundColor: 'transparent',
           position: 'relative'
@@ -146,7 +143,7 @@ const DefaultHome = () => {
             top: '50%',
             transform: 'translateY(-50%)'
           }}>
-            <button 
+            <button
               onClick={handlePrev}
               style={{
                 padding: '10px',
@@ -165,7 +162,7 @@ const DefaultHome = () => {
             top: '50%',
             transform: 'translateY(-50%)'
           }}>
-            <button 
+            <button
               onClick={handleNext}
               style={{
                 padding: '10px',
@@ -188,16 +185,16 @@ const DefaultHome = () => {
             fontSize: '24px',
             margin: '10px 0'
           }}>{currentTopic.description}</p>
-          <Link to={currentTopic.link} style={{ 
-            display: 'flex', 
-            flexDirection: 'column', 
-            alignItems: 'center', 
+          <Link to={currentTopic.link} style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
             gap: '10px',
             textDecoration: 'none'
           }}>
-            <img src={currentTopic.image} alt={currentTopic.title} style={{ 
-              width: '200px', 
-              height: '200px', 
+            <img src={currentTopic.image} alt={currentTopic.title} style={{
+              width: '200px',
+              height: '200px',
               objectFit: 'contain',
               borderRadius: '10px'
             }} />

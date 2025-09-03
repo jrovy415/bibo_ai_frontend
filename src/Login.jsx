@@ -4,11 +4,12 @@ import { speakText } from './ttsUtil';
 import { MdHeadset } from 'react-icons/md';
 import { useAuth } from "../composables/useAuth"
 import { Button } from "antd";
+import axios from '../plugins/axios';
 
 export default function Login() {
   const [activeTab, setActiveTab] = useState('Student');
   const [nickname, setNickname] = useState('');
-  const [gradeLevel, setGradeLevel] = useState('kinder');
+  const [gradeLevel, setGradeLevel] = useState('Kinder');
   const [section, setSection] = useState('1');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -37,16 +38,40 @@ export default function Login() {
   const introFullText = "Hello! I'm OpenAI Whisper, a super cool speech recognition system that can listen and understand you. Let's have fun learning together!";
 
   // Handle student form submission with basic validation
-  const handleStudentSubmit = (e) => {
+  const handleStudentSubmit = async (e) => {
     e.preventDefault();
+
     if (!nickname.trim()) {
-      setStudentError('Please enter a valid nickname.');
+      setStudentError("Please enter a valid nickname.");
       return;
     }
-    setStudentError('');
-    // Additional validation can be added here if needed
-    navigate('/Default');
+
+    setStudentError("");
+
+    try {
+      const response = await axios.post("/students/login", {
+        nickname,
+        grade_level: gradeLevel,
+        section,
+      });
+
+      // Save token for student
+      window.localStorage.setItem("APP_STUDENT_TOKEN", response.data.token);
+
+      // Save student info
+      if (response.data.student) {
+        window.localStorage.setItem("APP_STUDENT", JSON.stringify(response.data.student));
+      }
+
+      // Redirect after successful login
+      window.location.href = "/student";
+    } catch (error) {
+      console.error(error);
+      setStudentError("Login failed. Please try again.");
+    }
   };
+
+
 
   // Handle teacher form submission with basic validation
   const handleTeacherSubmit = async (e) => {
@@ -178,6 +203,7 @@ export default function Login() {
   return (
     <div
       style={{
+        margin: 0,
         width: '100vw',
         height: '100vh',
         backgroundImage: "url('/3436801_20252.jpg')",
@@ -538,7 +564,7 @@ export default function Login() {
               {studentError && <p style={{ color: 'red', marginBottom: '1rem' }}>{studentError}</p>}
               <div style={{ marginBottom: '1rem', width: '100%', textAlign: 'center' }}>
                 <label style={{ marginRight: '1rem', fontWeight: 'bold' }}>Grade Level:</label>
-                {['kinder', 'grade 1'].map((grade) => (
+                {['Kinder', 'Grade 1'].map((grade) => (
                   <label key={grade} style={{ marginRight: '1rem', textTransform: 'capitalize' }}>
                     <input
                       type="radio"
@@ -568,20 +594,18 @@ export default function Login() {
                   </label>
                 ))}
               </div>
-              <button
-                type="submit"
+              <Button
+                type="primary"
                 style={{
-                  padding: '0.75rem',
-                  backgroundColor: activeColor,
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
+                  backgroundColor: "green",
                   width: '100%',
                 }}
+                disabled={loading}
+                loading={loading}
+                onClick={handleStudentSubmit}
               >
-                Submit
-              </button>
+                Login
+              </Button>
             </div>
           )}
 
@@ -617,7 +641,7 @@ export default function Login() {
                 }}
                 disabled={loading}
                 loading={loading}
-                onClick={activeTab === 'Student' ? handleStudentSubmit : handleTeacherSubmit}
+                onClick={handleTeacherSubmit}
               >
                 Login
               </Button>

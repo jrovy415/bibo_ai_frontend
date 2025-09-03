@@ -8,7 +8,7 @@ import DataTable from './components/DataTable';
 const iconMap = {
   Dashboard: <FaTachometerAlt />,
   Students: <FaUserGraduate />,
-  Sessions: <FaClipboardList />,
+  Teachers: <FaClipboardList />,
   Quizzes: <FaBook />,
   'Quiz Scores': <FaPoll />,
   Users: <FaUsers />,
@@ -24,7 +24,7 @@ const Dashboard = () => {
   const [endpoint, setEndpoint] = useState('/users');
 
   const { authUser, logout, getUser } = useAuth();
-  const { loading, items, index, store, update, destroy } = useApi(endpoint);
+  const { loading, items, index, store, update, destroy, show } = useApi(endpoint);
 
   const [showCreate, setShowCreate] = useState(true);
 
@@ -42,8 +42,8 @@ const Dashboard = () => {
         setEndpoint("/students");
         setShowCreate(false)
         break;
-      case "Sessions":
-        setEndpoint("/sessions");
+      case "Teachers":
+        setEndpoint("/users");
         setShowCreate(true)
         break;
       case "Quizzes":
@@ -53,16 +53,22 @@ const Dashboard = () => {
       case "Quiz Scores":
         setEndpoint("/quiz-scores");
         setShowCreate(true)
-
         break;
       default:
         setEndpoint("");
     }
+  }, [activeMenu]);
 
+  useEffect(() => {
     if (endpoint) {
-      index();
+      console.log('Dashboard - Calling index() for endpoint:', endpoint);
+      index().then(() => {
+        console.log('Dashboard - index() completed, items:', items);
+      }).catch((error) => {
+        console.error('Dashboard - index() error:', error);
+      });
     }
-  }, [activeMenu, endpoint]);
+  }, [endpoint]);
 
   // Field definitions for different entities
   const getFieldsConfig = (type) => {
@@ -74,10 +80,11 @@ const Dashboard = () => {
           { name: 'section', label: 'Section', required: true },
         ];
 
-      case 'Sessions':
+      case 'Teachers':
         return [
-          { name: 'student_id', label: 'Student ID', type: 'number', required: true },
-          { name: 'type', label: 'Session Type', required: true },
+          { name: 'username', label: 'Username', required: true },
+          { name: 'first_name', label: 'First Name', required: true },
+          { name: 'last_name', label: 'Last Name', required: true },
         ];
 
       case 'Quizzes':
@@ -111,16 +118,11 @@ const Dashboard = () => {
           { title: "Section", dataIndex: "section", key: "section" },
         ];
 
-      case 'Sessions':
+      case 'Teachers':
         return [
-          { title: "Student ID", dataIndex: "student_id", key: "student_id" },
-          { title: "Type", dataIndex: "type", key: "type" },
-          {
-            title: "Timestamp",
-            dataIndex: "timestamp",
-            key: "timestamp",
-            render: (timestamp) => new Date(timestamp).toLocaleString()
-          },
+          { title: "Username", dataIndex: "username", key: "username" },
+          { title: "First Name", dataIndex: "first_name", key: "first_name" },
+          { title: "Last Name", dataIndex: "last_name", key: "last_name" },
         ];
 
       case 'Quizzes':
@@ -148,18 +150,58 @@ const Dashboard = () => {
   };
 
   const handleCreate = async (formData) => {
-    await store(formData);
-    await index(); // Refresh the list
+    try {
+      // Remove id field for create operations
+      const { id, ...createData } = formData;
+      await store(createData);
+      await index(); // Refresh the list
+    } catch (error) {
+      console.error('Create error:', error);
+      throw error;
+    }
   };
 
   const handleUpdate = async (formData) => {
-    await update(formData.id, formData);
-    await index(); // Refresh the list
+    try {
+      if (!formData.id) {
+        throw new Error('ID is required for update operation');
+      }
+
+      // Separate id from the rest of the data
+      const { id, ...updateData } = formData;
+      await update(id, updateData);
+      await index(); // Refresh the list
+    } catch (error) {
+      console.error('Update error:', error);
+      throw error;
+    }
   };
 
   const handleDelete = async (record) => {
-    await destroy(record.id);
-    await index(); // Refresh the list
+    try {
+      if (!record.id) {
+        throw new Error('ID is required for delete operation');
+      }
+
+      await destroy(record.id);
+      await index(); // Refresh the list
+    } catch (error) {
+      console.error('Delete error:', error);
+      throw error;
+    }
+  };
+
+  const handleView = async (record) => {
+    try {
+      // If you need to fetch fresh data for viewing
+      if (show && record.id) {
+        return await show(record.id);
+      }
+      return record;
+    } catch (error) {
+      console.error('View error:', error);
+      return record; // Fallback to using the record data
+    }
   };
 
   const renderContent = () => {
@@ -172,7 +214,7 @@ const Dashboard = () => {
     }
 
     // For data-driven sections, use the enhanced DataTable
-    if (['Students', 'Sessions', 'Quizzes', 'Quiz Scores'].includes(activeMenu)) {
+    if (['Students', 'Teachers', 'Quizzes', 'Quiz Scores'].includes(activeMenu)) {
       return (
         <DataTable
           title={activeMenu.slice(0, -1)} // Remove 's' from plural
@@ -183,10 +225,12 @@ const Dashboard = () => {
           onCreate={handleCreate}
           onUpdate={handleUpdate}
           onDelete={handleDelete}
+          onView={handleView}
           showCreate={showCreate}
           showView={true}
           showEdit={true}
           showDelete={true}
+          authUser={authUser}
         />
       );
     }
@@ -209,11 +253,10 @@ const Dashboard = () => {
       </button>
       <div className={`sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
         <div className="profile-info">
-          <h3>{authUser?.first_name}</h3>
-          <p>{authUser?.role?.name}</p>
+          <h3>{authUser?.first_name} {authUser?.last_name}</h3>
         </div>
         <ul className="menu">
-          {['Students', 'Sessions', 'Quizzes', 'Quiz Scores', 'Logout'].map(item => (
+          {['Students', 'Teachers', 'Quizzes', 'Quiz Scores', 'Logout'].map(item => (
             <li
               key={item}
               onClick={() => handleMenuClick(item)}

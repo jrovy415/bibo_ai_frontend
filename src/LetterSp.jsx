@@ -231,10 +231,10 @@ const NextPage = () => {
 
   return (
     <div className="nextpage-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', backgroundColor: 'transparent' }}>
-      <Link to="/IntroLetters" style={{ position: 'absolute', top: '50%', left: 10, transform: 'translateY(-50%)', zIndex: 1100 }}>
+      <Link to="/student/intro_letters" style={{ position: 'absolute', top: '50%', left: 10, transform: 'translateY(-50%)', zIndex: 1100 }}>
         <img src="/back.png" alt="Back2" className="back2-image" style={{ width: 60, height: 60, borderRadius: '50%', objectFit: 'cover', cursor: 'pointer' }} />
       </Link>
-      <Link to="/letters" style={{ position: 'absolute', top: '50%', right: 10, transform: 'translateY(-50%)' }}>
+      <Link to="/student/letters" style={{ position: 'absolute', top: '50%', right: 10, transform: 'translateY(-50%)' }}>
         <img src="/forward.png" alt="Forward2" className="forward2-image" style={{ width: 60, height: 60, borderRadius: '50%', objectFit: 'cover', cursor: 'pointer' }} />
       </Link>
       <img

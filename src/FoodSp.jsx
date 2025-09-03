@@ -209,10 +209,10 @@ const NextPage = () => {
 
   return (
     <div className="nextpage-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <Link to="/IntroFood" style={{ position: 'absolute', top: '50%', left: 10, transform: 'translateY(-50%)', zIndex: 1100 }}>
+      <Link to="/student/intro_food" style={{ position: 'absolute', top: '50%', left: 10, transform: 'translateY(-50%)', zIndex: 1100 }}>
         <img src="/back.png" alt="Back" style={{ width: 60, height: 60, borderRadius: '50%', objectFit: 'cover', cursor: 'pointer' }} />
       </Link>
-      <Link to="/FoodAct" style={{ position: 'absolute', top: '50%', right: 10, transform: 'translateY(-50%)' }}>
+      <Link to="/student/food_act" style={{ position: 'absolute', top: '50%', right: 10, transform: 'translateY(-50%)' }}>
         <img src="/forward.png" alt="Forward" style={{ width: 60, height: 60, borderRadius: '50%', objectFit: 'cover', cursor: 'pointer' }} />
       </Link>
 

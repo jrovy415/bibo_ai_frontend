@@ -92,7 +92,7 @@ const Default = () => {
 
   return (
     <div className="foodact-container" style={containerStyle}>
-      <Link to="/FoodSp">
+      <Link to="/student/food_sp">
         <img
           src="/back.png"
           alt="Back"

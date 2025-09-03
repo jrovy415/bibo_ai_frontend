@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Form, Input, Button, Space, Descriptions, message } from 'antd';
+import { Modal, Form, Input, Button, Space, Descriptions, message, Select } from 'antd';
 
 const CrudModal = ({
   visible,
@@ -10,17 +10,26 @@ const CrudModal = ({
   fields, // Array of field configurations
   onSubmit,
   loading = false,
+  authUser
 }) => {
   const [form] = Form.useForm();
   const [submitLoading, setSubmitLoading] = useState(false);
 
   useEffect(() => {
-    if (visible && data && (mode === 'edit' || mode === 'view')) {
-      form.setFieldsValue(data);
-    } else if (visible && mode === 'create') {
+    if (mode === 'edit' || mode === 'view') {
+      form.setFieldsValue(data || {});
+    } else if (mode === 'create') {
       form.resetFields();
     }
-  }, [visible, data, mode, form]);
+  }, [data, mode, form]);
+
+  // Helper function to format display values
+  const formatDisplayValue = (value) => {
+    if (value === null || value === undefined || value === '') {
+      return '-';
+    }
+    return String(value);
+  };
 
   const handleSubmit = async () => {
     if (mode === 'delete') {
@@ -40,10 +49,10 @@ const CrudModal = ({
     try {
       const values = await form.validateFields();
       setSubmitLoading(true);
-      
+
       const submitData = mode === 'edit' ? { ...data, ...values } : values;
       await onSubmit(submitData);
-      
+
       message.success(`${title} ${mode === 'create' ? 'created' : 'updated'} successfully!`);
       onCancel();
     } catch (error) {
@@ -64,7 +73,7 @@ const CrudModal = ({
 
   const renderFormField = (field) => {
     const { name, label, type = 'text', required = false, placeholder, options, rules = [] } = field;
-    
+
     const defaultRules = required ? [{ required: true, message: `Please input ${label.toLowerCase()}!` }] : [];
     const fieldRules = [...defaultRules, ...rules];
 
@@ -72,18 +81,18 @@ const CrudModal = ({
       case 'textarea':
         return (
           <Form.Item key={name} name={name} label={label} rules={fieldRules}>
-            <Input.TextArea 
+            <Input.TextArea
               placeholder={placeholder || `Enter ${label.toLowerCase()}`}
               disabled={mode === 'view'}
               rows={4}
             />
           </Form.Item>
         );
-      
+
       case 'select':
         return (
           <Form.Item key={name} name={name} label={label} rules={fieldRules}>
-            <Select 
+            <Select
               placeholder={placeholder || `Select ${label.toLowerCase()}`}
               disabled={mode === 'view'}
             >
@@ -95,22 +104,22 @@ const CrudModal = ({
             </Select>
           </Form.Item>
         );
-      
+
       case 'number':
         return (
           <Form.Item key={name} name={name} label={label} rules={fieldRules}>
-            <Input 
+            <Input
               type="number"
               placeholder={placeholder || `Enter ${label.toLowerCase()}`}
               disabled={mode === 'view'}
             />
           </Form.Item>
         );
-      
+
       default:
         return (
           <Form.Item key={name} name={name} label={label} rules={fieldRules}>
-            <Input 
+            <Input
               placeholder={placeholder || `Enter ${label.toLowerCase()}`}
               disabled={mode === 'view'}
             />
@@ -122,10 +131,13 @@ const CrudModal = ({
   const renderViewContent = () => {
     if (mode !== 'view') return null;
 
-    const items = fields.map(field => ({
+    // Filter out hidden fields from view
+    const visibleFields = fields.filter(field => field.type !== 'hidden');
+
+    const items = visibleFields?.map(field => ({
       key: field.name,
       label: field.label,
-      children: data?.[field.name] || '-',
+      children: formatDisplayValue(data?.[field?.name]),
     }));
 
     return (
@@ -149,7 +161,7 @@ const CrudModal = ({
           <div style={{ marginTop: '16px', padding: '12px', backgroundColor: '#f5f5f5', borderRadius: '4px' }}>
             {fields.slice(0, 3).map(field => (
               <p key={field.name} style={{ margin: '4px 0' }}>
-                <strong>{field.label}:</strong> {data[field.name] || '-'}
+                <strong>{field?.label}:</strong> {formatDisplayValue(data[field?.name])}
               </p>
             ))}
           </div>
@@ -209,15 +221,16 @@ const CrudModal = ({
       onCancel={onCancel}
       footer={renderFooter()}
       width={600}
-      destroyOnClose
       confirmLoading={loading}
     >
       {mode === 'view' && renderViewContent()}
       {mode === 'delete' && renderDeleteContent()}
       {(mode === 'create' || mode === 'edit') && (
         <Form
+          key={mode + (data?.id || '')}  // force re-render when switching record/mode
           form={form}
           layout="vertical"
+          initialValues={mode === 'edit' || mode === 'view' ? data : {}}
           preserve={false}
         >
           {fields.map(field => renderFormField(field))}

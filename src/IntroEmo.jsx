@@ -56,9 +56,9 @@ const Default = () => {
     <>
       <div className="defaulthome-container">
         <div className="defaulthome-top-row" style={{ flexDirection: 'column', gap: '20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%'}}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
             <div>
-              <Link to="/Default">
+              <Link to="/student/">
                 <img src="/back.png" alt="Back" style={{ position: 'absolute', top: '50%', left: 10, transform: 'translateY(-50%)', height: '50px', width: 'auto' }} />
               </Link>
             </div>
@@ -116,7 +116,7 @@ const Default = () => {
               </div>
             </div>
             <div>
-              <Link to="/EmoSp">
+              <Link to="/student/emo_sp">
                 <img src="/forward.png" alt="Forward" style={{ position: 'absolute', top: '50%', right: 10, transform: 'translateY(-50%)', height: '50px', width: 'auto' }} />
               </Link>
             </div>

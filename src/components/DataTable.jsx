@@ -3,10 +3,10 @@ import { Table, Button, Space, Popconfirm } from "antd";
 import { PlusOutlined, EyeOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import CrudModal from './CrudModal';
 
-const DataTable = ({ 
-  columns, 
-  data, 
-  loading = false, 
+const DataTable = ({
+  columns,
+  data,
+  loading = false,
   title = "Record",
   fields = [], // Field definitions for the modal
   onCreate,
@@ -16,7 +16,8 @@ const DataTable = ({
   showView = true,
   showEdit = true,
   showDelete = true,
-  tableProps = {}
+  tableProps = {},
+  authUser
 }) => {
   const [modalState, setModalState] = useState({
     visible: false,
@@ -97,8 +98,8 @@ const DataTable = ({
       render: (_, record) => (
         <Space size="small">
           {showView && (
-            <Button 
-              size="small" 
+            <Button
+              size="small"
               icon={<EyeOutlined />}
               onClick={() => handleView(record)}
               title="View"
@@ -107,9 +108,9 @@ const DataTable = ({
             </Button>
           )}
           {showEdit && (
-            <Button 
-              size="small" 
-              type="primary" 
+            <Button
+              size="small"
+              type="primary"
               icon={<EditOutlined />}
               onClick={() => handleEdit(record)}
               title="Edit"
@@ -125,11 +126,12 @@ const DataTable = ({
               cancelText="No"
               placement="topRight"
             >
-              <Button 
-                size="small" 
-                danger 
+              <Button
+                size="small"
+                danger
                 icon={<DeleteOutlined />}
                 title="Delete"
+                disabled={authUser?.username === record.username} // Prevent self-deletion
               >
                 Delete
               </Button>
@@ -145,8 +147,8 @@ const DataTable = ({
       {/* Create Button */}
       {showCreate && (
         <div style={{ marginBottom: 16, textAlign: 'right' }}>
-          <Button 
-            type="primary" 
+          <Button
+            type="primary"
             icon={<PlusOutlined />}
             onClick={handleCreate}
           >
@@ -161,11 +163,11 @@ const DataTable = ({
         columns={enhancedColumns}
         dataSource={data}
         loading={loading}
-        pagination={{ 
+        pagination={{
           pageSize: 10,
           showSizeChanger: true,
           showQuickJumper: true,
-          showTotal: (total, range) => 
+          showTotal: (total, range) =>
             `${range[0]}-${range[1]} of ${total} items`,
         }}
         scroll={{ x: 'max-content' }}
@@ -183,6 +185,7 @@ const DataTable = ({
         onCancel={handleModalClose}
         onSubmit={handleModalSubmit}
         loading={actionLoading}
+        authUser={authUser}
       />
     </div>
   );

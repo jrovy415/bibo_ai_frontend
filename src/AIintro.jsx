@@ -21,7 +21,7 @@ const AIintro = () => {
     }
     setStudentError('');
     // Additional validation can be added here if needed
-    navigate('/Default');
+    navigate('/student');
   };
 
   // Handle teacher form submission with basic validation
@@ -37,7 +37,7 @@ const AIintro = () => {
     }
     setTeacherError('');
     // TODO: Add real authentication logic here
-    navigate('/TD2');
+    navigate('/dashboard');
   };
 
   const activeColor = '#a8d5a2'; // lighter green

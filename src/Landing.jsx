@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import TTS from "../TTS";
+// import TTS from "./TTS";
 const Landing = () => {
     const [countdown, setCountdown] = useState(null);
     const [startCountdown, setStartCountdown] = useState(false);

@@ -57,10 +57,10 @@ const Default = () => {
 
   return (
     <div className="defaulthome-container" style={{display: 'flex', flexDirection: 'column', gap: '20px', position: 'relative', justifyContent: 'center', alignItems: 'center'}}>
-      <Link to="/Default">
+      <Link to="/student">
         <img src="/back.png" alt="Back" style={{position: 'absolute', top: '50%', left: 10, transform: 'translateY(-50%)', width: 60, height: 60, borderRadius: '50%', objectFit: 'cover'}} />
       </Link>
-      <Link to="/LetterSp">
+      <Link to="/student/letter_sp">
         <img src="/forward.png" alt="Forward" style={{position: 'absolute', top: '50%', right: 10, transform: 'translateY(-50%)', width: 60, height: 60, borderRadius: '50%', objectFit: 'cover', cursor: 'pointer'}} />
       </Link>
       <img

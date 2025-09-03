@@ -18,7 +18,7 @@ function Animal() {
 
   return (
     <div className="defaulthome-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100vh', justifyContent: 'center', padding: '20px', gap: '40px' }}>
-      <Link to="/Default">
+      <Link to="/student">
         <img src="/back.png" alt="Back" style={{position: 'absolute', top: 10, left: 35, width: 60, height: 60, borderRadius: '50%', objectFit: 'cover'}} />
       </Link>
 

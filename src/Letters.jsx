@@ -282,7 +282,7 @@ function Letters() {
             pointerEvents: 'none',
           }}
         />
-        <Link to="/LetterSp">
+        <Link to="/student/letter_sp">
           <img
             src="/back.png"
             alt="Back"
