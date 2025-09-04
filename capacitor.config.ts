@@ -6,6 +6,8 @@ const config: CapacitorConfig = {
   webDir: "dist",
   server: {
     androidScheme: "https",
+    // Add cleartext traffic for development/HTTP APIs
+    cleartext: true,
   },
   plugins: {
     SplashScreen: {
@@ -13,6 +15,10 @@ const config: CapacitorConfig = {
       backgroundColor: "#ffffffff",
       androidSplashResourceName: "splash",
       androidScaleType: "CENTER_CROP",
+    },
+    // Add HTTP plugin configuration
+    CapacitorHttp: {
+      enabled: true,
     },
   },
 };

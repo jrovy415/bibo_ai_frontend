@@ -1,8 +1,8 @@
 import axios from "axios";
 import { notification } from "antd";
+import { Capacitor } from "@capacitor/core";
 
-const api = "http://localhost:8000/backend/api/v1";
-// const api = "http://13.251.88.87:6083/core/api/v1"
+const api = "https://bibo-ai-backend.onrender.com/backend/api/v1";
 
 // Configure Ant Design notification globally
 notification.config({
@@ -12,25 +12,46 @@ notification.config({
   rtl: true,
 });
 
+// Configure axios based on platform
 axios.defaults.baseURL = api;
 axios.defaults.headers.common["X-Requested-With"] = "XMLHttpRequest";
 axios.defaults.headers.common["Content-Type"] = "application/json";
-axios.defaults.withXSRFToken = true;
+
+// Only set withXSRFToken for web platform
+if (!Capacitor.isNativePlatform()) {
+  axios.defaults.withXSRFToken = true;
+}
 
 const axiosRequest = axios.create({
   baseURL: api,
-  withCredentials: true,
+  // Only use withCredentials on web platform
+  withCredentials: !Capacitor.isNativePlatform(),
+  timeout: 30000, // 30 second timeout
   headers: {
     Authorization: `Bearer ${window.localStorage.getItem("APP_TOKEN")}`,
     Accept: "application/json",
   },
 });
 
+// Request interceptor to update token on each request
+axiosRequest.interceptors.request.use(
+  (config) => {
+    const token = window.localStorage.getItem("APP_TOKEN");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
 axiosRequest.interceptors.response.use(
   (res) => {
     const { status, data, request, config } = res;
 
-    const isLogout = request.responseURL.endsWith("/logout");
+    const isLogout = request.responseURL?.endsWith("/logout");
     const isDelete = config.method === "delete";
     const isEmailSent = data.message === "Email Sent";
 
@@ -48,39 +69,33 @@ axiosRequest.interceptors.response.use(
     return res;
   },
   (error) => {
-    if (!error.response) {
+    // Handle network connection errors
+    if (!error.response && (error.code === 'NETWORK_ERROR' || error.code === 'ECONNABORTED' || !error.status)) {
       notification.error({
         message: "Network Error",
-        description:
-          "Cannot reach the server. Please check your internet connection.",
+        description: "Cannot reach the server. Please check your internet connection.",
       });
-
-      // Navigate to network error page
-      // window.location.href = "/network-error/1";
-
       return Promise.reject(error);
     }
 
-    const { status, data, request } = error.response;
+    const { status, data, request } = error.response || {};
 
     if (status === 500) {
       notification.error({
         message: "Network Error",
-        description:
-          "Unable to connect to the server. Please check your internet connection.",
+        description: "Unable to connect to the server. Please check your internet connection.",
       });
-      // window.location.href = "/network-error/2";
     } else if (status === 422) {
       notification.error({
         message: "Validation Error",
-        description: data.message,
+        description: data?.message || "Validation failed",
       });
-    } else if (status === 419 && !request.responseURL.endsWith("/auth-user")) {
+    } else if (status === 419 && !request?.responseURL?.endsWith("/auth-user")) {
       notification.error({
         message: "Error",
         description: "Server Error",
       });
-    } else if (status === 401 && request.responseURL.endsWith("/auth-user")) {
+    } else if (status === 401 && request?.responseURL?.endsWith("/auth-user")) {
       notification.error({
         message: "Error",
         description: "Authentication Error. Please login again.",
@@ -90,7 +105,7 @@ axiosRequest.interceptors.response.use(
     } else {
       notification.error({
         message: "Error",
-        description: data.message || "Something went wrong. Please try again.",
+        description: data?.message || "Something went wrong. Please try again.",
       });
     }
 
