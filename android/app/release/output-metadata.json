@@ -4,7 +4,7 @@
     "type": "APK",
     "kind": "Directory"
   },
-  "applicationId": "com.example.app",
+  "applicationId": "com.bibo_ai.app",
   "variantName": "release",
   "elements": [
     {

@@ -17,7 +17,8 @@ const DataTable = ({
   showEdit = true,
   showDelete = true,
   tableProps = {},
-  authUser
+  authUser,
+  questionTypeOptions
 }) => {
   const [modalState, setModalState] = useState({
     visible: false,
@@ -131,7 +132,7 @@ const DataTable = ({
                 danger
                 icon={<DeleteOutlined />}
                 title="Delete"
-                disabled={authUser?.username === record.username} // Prevent self-deletion
+                disabled={authUser?.username === record?.username} // Prevent self-deletion
               >
                 Delete
               </Button>
@@ -143,7 +144,7 @@ const DataTable = ({
   ];
 
   return (
-    <div style={{ width: '100%' }}>
+    <>
       {/* Create Button */}
       {showCreate && (
         <div style={{ marginBottom: 16, textAlign: 'right' }}>
@@ -186,8 +187,9 @@ const DataTable = ({
         onSubmit={handleModalSubmit}
         loading={actionLoading}
         authUser={authUser}
+        questionTypeOptions={questionTypeOptions}
       />
-    </div>
+    </>
   );
 };
 

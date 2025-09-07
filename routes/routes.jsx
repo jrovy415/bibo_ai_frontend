@@ -16,6 +16,10 @@ import IntroEmo from "../src/IntroEmo";
 import EmoSp from "../src/EmoSp";
 import EmoAct from "../src/EmoAct";
 import StudentLogout from "../src/StudentLogout";
+import StudentDashboard from "../src/student/StudentDashboard";
+import StudentQuiz from "../src/student/StudentQuiz";
+import SpeechToText from "../src/components/SpeechToText";
+import StudentFinishedQuiz from "../src/student/StudentFinishedQuiz";
 
 // check teacher login
 const isTeacherAuthenticated = () => {
@@ -80,21 +84,25 @@ const router = createBrowserRouter([
             </StudentProtectedRoute>
         ),
         children: [
-            { path: "", element: <Default /> },
-            { path: "animal", element: <Animal /> },
-            { path: "weather", element: <Weather /> },
-            { path: "intro_letters", element: <IntroLetters /> },
-            { path: "letter_sp", element: <LetterSp /> },
-            { path: "letters", element: <Letters /> },
-            { path: "intro_food", element: <IntroFood /> },
-            { path: "food_sp", element: <FoodSp /> },
-            { path: "food_act", element: <FoodAct /> },
-            { path: "intro_emo", element: <IntroEmo /> },
-            { path: "emo_sp", element: <EmoSp /> },
-            { path: "emo_act", element: <EmoAct /> },
+            { path: "", element: <StudentDashboard /> },
+            { path: "quiz", element: <StudentQuiz /> },
+            { path: "finished-quiz", element: <StudentFinishedQuiz /> },
+            // { path: "weather", element: <Weather /> },
+            // { path: "intro_letters", element: <IntroLetters /> },
+            // { path: "letter_sp", element: <LetterSp /> },
+            // { path: "letters", element: <Letters /> },
+            // { path: "intro_food", element: <IntroFood /> },
+            // { path: "food_sp", element: <FoodSp /> },
+            // { path: "food_act", element: <FoodAct /> },
+            // { path: "intro_emo", element: <IntroEmo /> },
+            // { path: "emo_sp", element: <EmoSp /> },
+            // { path: "emo_act", element: <EmoAct /> },
             { path: "logout", element: <StudentLogout /> },
         ],
     },
+    {
+        path: "/speech", element: <SpeechToText />
+    }
 ]);
 
 export default function Router() {

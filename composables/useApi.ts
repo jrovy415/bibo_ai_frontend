@@ -41,6 +41,7 @@ export const useApi = <T>(endpoint: string) => {
 
   async function index(options?: any) {
     setLoading(true);
+    setItems([]);
 
     try {
       setPagination((prev) => ({ ...prev, ...options }));

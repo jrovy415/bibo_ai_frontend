@@ -486,7 +486,7 @@ export default function Login() {
 
       <div
         style={{
-          width: '320px',
+          width: '500px',
           backgroundColor: 'white',
           borderRadius: '8px 8px 0 0',
           boxShadow: '0 2px 8px rgba(0,0,0,0.1)',

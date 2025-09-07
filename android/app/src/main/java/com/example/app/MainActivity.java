@@ -1,4 +1,4 @@
-package com.example.app;
+package com.bibo_ai.app;
 
 import com.getcapacitor.BridgeActivity;
 

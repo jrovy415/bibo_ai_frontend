@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">sample</string>
-    <string name="title_activity_main">sample</string>
-    <string name="package_name">com.example.app</string>
-    <string name="custom_url_scheme">com.example.app</string>
+    <string name="app_name">Bibo AI</string>
+    <string name="title_activity_main">Bibo AI</string>
+    <string name="package_name">com.bibo_ai.app</string>
+    <string name="custom_url_scheme">com.bibo_ai.app</string>
 </resources>
