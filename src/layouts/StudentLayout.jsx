@@ -27,6 +27,7 @@ export default function StudentLayout() {
                     fontWeight: "bold",
                     background: "linear-gradient(135deg, #ff4d4f 0%, #ff7875 100%)",
                     border: "none",
+                    transition: "transform 0.3s ease, box-shadow 0.3s ease",
                 }}
             >
                 🚪 Logout

@@ -1,4 +1,4 @@
-import { Button, Progress, Card, Spin, Carousel, Row, Col } from "antd";
+import { Button, Progress, Card, Spin, Carousel, Row, Col, Tag } from "antd";
 import { BookOutlined, StarOutlined, TrophyOutlined, QuestionCircleOutlined } from "@ant-design/icons";
 import { motion } from "framer-motion";
 import { useAuth } from "../../composables/useAuth";
@@ -9,9 +9,12 @@ import axios from "../../plugins/axios";
 
 const StudentDashboard = () => {
     const navigate = useNavigate();
+
     const [quizDone, setQuizDone] = useState(false);
     const [quizzes, setQuizzes] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [quizAttempts, setQuizAttempts] = useState();
+
     const { authUser, getUser } = useAuth();
 
     useEffect(() => {
@@ -19,6 +22,7 @@ const StudentDashboard = () => {
             try {
                 getUser();
                 await axios.get("/quizzes/get-quiz");
+
             } catch (err) {
                 console.error(err);
                 setQuizDone(true);
@@ -32,6 +36,22 @@ const StudentDashboard = () => {
 
         fetchQuiz();
     }, []);
+
+    useEffect(() => {
+        const fetchAttempts = async () => {
+            if (!authUser?.id) return;
+
+            try {
+                const res = await axios.get(`/quiz-attempts/student-attempts/${authUser.id}`);
+                setQuizAttempts(res.data.data); // 👈 set actual data
+                console.log(res.data.data);
+            } catch (err) {
+                console.error("Error fetching attempts:", err);
+            }
+        };
+
+        fetchAttempts();
+    }, [authUser]);
 
     // Fetch all quizzes if quizDone is true and authUser is available
     useEffect(() => {
@@ -49,6 +69,18 @@ const StudentDashboard = () => {
         fetchAllQuizzes();
     }, [quizDone, authUser]);
 
+    const handleRetake = async (quizId) => {
+        try {
+            const res = await axios.post("/quiz-attempts", {
+                quiz_id: quizId,
+            });
+
+            console.log("Retake success:", res.data);
+            navigate("/student/quiz"); // 👈 redirect student back to quiz page
+        } catch (err) {
+            console.error("Error retaking quiz:", err);
+        }
+    };
 
     if (loading) {
         return (
@@ -165,7 +197,7 @@ const StudentDashboard = () => {
                 {/* Display quizzes if done */}
 
 
-                {quizDone && quizzes.length > 0 && (
+                {quizDone && quizAttempts && (
                     <div
                         style={{
                             marginTop: "60px",
@@ -185,18 +217,23 @@ const StudentDashboard = () => {
                                 marginBottom: "30px",
                             }}
                         >
-                            🎉 Your Quizzes
+                            🎉 Your Quiz Attempts
                         </h2>
 
-                        <Row gutter={[24, 24]} justify="center">
-                            {quizzes.map((quiz, index) => {
-                                const colors = ["#FFD93D", "#6BCB77", "#4D96FF", "#FF6B6B", "#FF9F1C"];
+                        <Row gutter={[16, 16]} justify="center" style={{ marginTop: "20px" }}>
+                            {[quizAttempts].flat().map((attempt, index) => {
+                                const colors = ["#4FAF5D", "#2F78E0", "#E04848", "#E68100"];
                                 const bgColor = colors[index % colors.length];
 
+                                const quiz = attempt.quiz;
+                                const totalQuestions = quiz?.questions?.length;
+                                const completion = Math.round(
+                                    (attempt?.answers?.length / totalQuestions) * 100
+                                );
+
                                 return (
-                                    <Col xs={24} sm={12} md={8} lg={6} key={quiz.id}>
+                                    <Col xs={24} sm={12} lg={6} key={attempt.id}>
                                         <Card
-                                            bordered={false}
                                             style={{
                                                 borderRadius: "20px",
                                                 boxShadow: "0 6px 15px rgba(0,0,0,0.15)",
@@ -204,40 +241,65 @@ const StudentDashboard = () => {
                                                 color: "white",
                                                 transition: "transform 0.3s ease, box-shadow 0.3s ease",
                                                 cursor: "pointer",
-                                                minHeight: "220px",
+                                                minHeight: "330px",
+                                                display: "flex",
+                                                flexDirection: "column",
+                                                justifyContent: "space-between",
+                                                overflowWrap: "break-word"
                                             }}
-                                            bodyStyle={{ padding: "20px" }}
                                             hoverable
-                                            onMouseEnter={(e) =>
-                                                (e.currentTarget.style.transform = "scale(1.05)")
-                                            }
-                                            onMouseLeave={(e) =>
-                                                (e.currentTarget.style.transform = "scale(1)")
-                                            }
                                         >
-                                            <div style={{ fontSize: "2.5rem", marginBottom: "10px" }}>
-                                                🎯
+                                            <div>
+                                                <div style={{ fontSize: "2.5rem", marginBottom: "10px" }}>🎯</div>
+                                                <h2 style={{ fontSize: "1.5rem", fontWeight: "bold" }}>
+                                                    {quiz?.title}
+                                                </h2>
+                                                <p><strong>Difficulty:</strong> {quiz?.difficulty}</p>
+                                                <p><strong>Questions:</strong> {totalQuestions}</p>
+                                                <div
+                                                    style={{
+                                                        marginTop: "15px",
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        justifyContent: "center",
+                                                    }}
+                                                >
+                                                    <div
+                                                        style={{
+                                                            width: "80px",
+                                                            height: "80px",
+                                                            borderRadius: "50%",
+                                                            backgroundColor: "rgba(255,255,255,0.2)",
+                                                            display: "flex",
+                                                            alignItems: "center",
+                                                            justifyContent: "center",
+                                                            fontSize: "1.5rem",
+                                                            fontWeight: "bold",
+                                                            color: "white",
+                                                            boxShadow: "0 4px 10px rgba(0,0,0,0.2)",
+                                                        }}
+                                                    >
+                                                        {attempt?.score ?? 0}/{totalQuestions}
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <h2 style={{ fontSize: "1.4rem", fontWeight: "bold" }}>
-                                                {quiz.title}
-                                            </h2>
-                                            <p>
-                                                <strong>Difficulty:</strong> {quiz.difficulty}
-                                            </p>
-                                            <p>
-                                                <strong>Questions:</strong> {quiz.total_questions}
-                                            </p>
-                                            <p>
-                                                <strong>Score:</strong>{" "}
-                                                {quiz.best_score !== null ? `${quiz.best_score}` : "Not taken"}
-                                            </p>
-                                            <Progress
-                                                percent={quiz.completion_percentage || 0}
-                                                size="small"
-                                                strokeColor="#fff"
-                                                trailColor="rgba(255,255,255,0.3)"
-                                            />
+
+                                            <Button
+                                                type="primary"
+                                                size="middle"
+                                                style={{
+                                                    marginTop: "12px",
+                                                    backgroundColor: "#ff7f50",
+                                                    border: "none",
+                                                    borderRadius: "10px",
+                                                    fontWeight: "bold",
+                                                }}
+                                                onClick={() => handleRetake(quiz?.id)}
+                                            >
+                                                Retake Quiz
+                                            </Button>
                                         </Card>
+
                                     </Col>
                                 );
                             })}

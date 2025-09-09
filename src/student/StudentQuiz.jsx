@@ -34,6 +34,8 @@ const StudentQuiz = () => {
 
                 setQuiz(res.data.data);
             } catch (err) {
+                navigate('/student');
+
                 console.error(err);
             } finally {
                 setLoading(false);
