@@ -35,7 +35,7 @@ const CrudModal = ({
               status: "done",
               url: q.photo.startsWith("http")
                 ? q.photo
-                : `${nonApi}/storage/${q.photo}`, // 👈 nonApi here
+                : `${nonApi}/${q.photo}`, // 👈 nonApi here
             };
           }
           return null;
