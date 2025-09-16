@@ -253,7 +253,7 @@ const StudentQuiz = () => {
             // TTS for intro
             if (ttsEnabled) {
                 const introText = "Great job! The quiz is starting! Read each statement slowly and carefully, and say your answer out loud when you’re ready. You can do it!";
-                
+
                 speak(introText, () => {
                     // Callback after TTS finishes
                     if (currentQuestion) {
@@ -566,9 +566,7 @@ const StudentQuiz = () => {
                         <span style={{ color: "green", fontWeight: "bold" }}>
                             🎉 Answer captured! You can proceed →
                         </span>
-                    ) : (
-                        <span style={{ color: "gray" }}>Ready to listen</span>
-                    )}
+                    ) : null}
                 </div>
             </Card>
 
