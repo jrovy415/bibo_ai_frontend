@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Form, Input, Button, Space, Descriptions, message, Select, Card, Divider, Checkbox, InputNumber } from 'antd';
-import { PlusOutlined, DeleteOutlined, MinusCircleOutlined } from '@ant-design/icons';
+import { Modal, Form, Input, Button, Space, Descriptions, message, Select, Card, Divider, Checkbox, InputNumber, Upload } from 'antd';
+import { PlusOutlined, DeleteOutlined, MinusCircleOutlined, UploadOutlined } from '@ant-design/icons';
+import axios, { nonApi } from '../../plugins/axios';
 
 const CrudModal = ({
   visible,
@@ -17,6 +18,7 @@ const CrudModal = ({
   const [form] = Form.useForm();
   const [submitLoading, setSubmitLoading] = useState(false);
   const [questions, setQuestions] = useState([]);
+  const [fileList, setFileList] = useState([]);
 
   useEffect(() => {
     if (mode === 'edit' || mode === 'view') {
@@ -24,6 +26,22 @@ const CrudModal = ({
       form.setFieldsValue(formData);
       if (title === 'Quiz' && data?.questions) {
         setQuestions(data.questions);
+
+        const existingFiles = data.questions.map((q, i) => {
+          if (q.photo) {
+            return {
+              uid: `question-${i}`,
+              name: q.photo.split("/").pop(),
+              status: "done",
+              url: q.photo.startsWith("http")
+                ? q.photo
+                : `${nonApi}/storage/${q.photo}`, // 👈 nonApi here
+            };
+          }
+          return null;
+        }).filter(Boolean);
+
+        setFileList(existingFiles);
       } else {
         setQuestions([]);
       }
@@ -32,6 +50,60 @@ const CrudModal = ({
       setQuestions([]);
     }
   }, [data, mode, form, title]);
+
+  const handleCustomRequest = async (options, questionIndex) => {
+    const { file, onSuccess, onError, onProgress } = options;
+
+    const formData = new FormData();
+    formData.append("photo", file);
+
+    try {
+      // simulate progress
+      if (onProgress) {
+        onProgress({ percent: 30 });
+      }
+
+      const res = await axios.post(
+        `/quizzes/${data?.id}/questions/upload-photo`,
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } }
+      );
+
+      if (onProgress) {
+        onProgress({ percent: 100 });
+      }
+
+      const uploaded = res.data?.data; // { filename, url }
+
+      // ✅ Update questions state
+      setQuestions(prev => {
+        const updated = [...prev];
+        updated[questionIndex] = {
+          ...updated[questionIndex],
+          photo: uploaded.filename,
+        };
+        return updated;
+      });
+
+      // ✅ Update fileList for Upload
+      setFileList(prev => [
+        ...prev.filter(f => f.uid !== `question-${questionIndex}`),
+        {
+          uid: `question-${questionIndex}`, // unique per question
+          name: file.name,
+          status: "done", // 👈 must be "done"
+          url: uploaded.url, // 👈 previewable URL from backend
+        },
+      ]);
+
+
+      // ✅ tell AntD upload finished
+      onSuccess({ url: uploaded.url }, file);
+    } catch (err) {
+      console.error(err);
+      onError?.(err);
+    }
+  };
 
   const formatDisplayValue = (value, record, fieldName) => {
     if (!fieldName) return value ?? '-';
@@ -44,18 +116,19 @@ const CrudModal = ({
     return String(resolved);
   };
 
-
   const handleSubmit = async () => {
+    console.log('=== HandleSubmit Debug Info ===');
+    console.log('Mode:', mode);
+    console.log('Title:', title);
+    console.log('Original data:', data);
+
     if (mode === 'delete') {
       setSubmitLoading(true);
       try {
         await onSubmit(data);
-        message.success(`${title} deleted successfully!`);
         onCancel();
       } catch (error) {
-        message.error(`Failed to delete ${title.toLowerCase()}`);
-
-        console.error(error)
+        console.error(error);
       } finally {
         setSubmitLoading(false);
       }
@@ -63,26 +136,144 @@ const CrudModal = ({
     }
 
     try {
-      const values = await form.validateFields();
       setSubmitLoading(true);
 
-      const submitData = mode === 'edit' ? { ...data, ...values } : values;
+      // Validate visible form fields
+      const visibleFields = fields.filter(f => f.type !== 'hidden');
+      const fieldsToValidate = visibleFields.map(f => f.name);
 
-      if (title === 'Quiz') submitData.questions = questions;
+      let values = {};
+      try {
+        values = await form.validateFields(fieldsToValidate);
+        console.log('Form validation passed. Values:', values);
+      } catch (formError) {
+        setSubmitLoading(false);
+        message.error('Please fill in all required fields correctly');
+        console.error('Form validation failed:', formError);
+        return;
+      }
 
-      await onSubmit(submitData);
+      // Include hidden field values
+      const hiddenFields = fields.filter(f => f.type === 'hidden');
+      hiddenFields.forEach(f => {
+        const formValue = form.getFieldValue(f.name);
+        const originalValue = data?.[f.name];
+        values[f.name] = formValue !== undefined ? formValue : originalValue;
+      });
 
-      message.success(`${title} ${mode === 'create' ? 'created' : 'updated'} successfully!`);
+      // Quiz-specific validation
+      if (title === 'Quiz') {
+        if (questions.length === 0) {
+          setSubmitLoading(false);
+          message.error('Please add at least one question');
+          return;
+        }
+
+        for (let i = 0; i < questions.length; i++) {
+          const q = questions[i];
+          if (!q.question_text?.trim()) {
+            setSubmitLoading(false);
+            message.error(`Please enter text for Question ${i + 1}`);
+            return;
+          }
+          if (!q.question_type_id) {
+            setSubmitLoading(false);
+            message.error(`Please select question type for Question ${i + 1}`);
+            return;
+          }
+          if (!q.points || q.points < 1) {
+            setSubmitLoading(false);
+            message.error(`Please set valid points for Question ${i + 1}`);
+            return;
+          }
+
+          const typeLabel = questionTypeOptions?.find(opt => opt.value === q.question_type_id)?.label;
+          if (['Multiple Choice', 'True/False'].includes(typeLabel)) {
+            if (!q.choices || q.choices.length === 0) {
+              setSubmitLoading(false);
+              message.error(`Please add choices for Question ${i + 1}`);
+              return;
+            }
+            if (!q.choices.some(c => c.is_correct)) {
+              setSubmitLoading(false);
+              message.error(`Please mark the correct answer for Question ${i + 1}`);
+              return;
+            }
+            if (q.choices.some(c => !c.choice_text?.trim())) {
+              setSubmitLoading(false);
+              message.error(`Please enter text for all choices in Question ${i + 1}`);
+              return;
+            }
+          }
+        }
+      }
+
+      // Merge values with existing data for edit mode
+      let submitData = mode === 'edit' ? { ...data, ...values } : values;
+      if (!submitData.id && data?.id) submitData.id = data.id;
+
+      // Handle Quiz submissions
+      if (title === 'Quiz') {
+        const hasFileUploads = questions.some(q => q.photo instanceof File);
+
+        if (hasFileUploads) {
+          const formData = new FormData();
+
+          if (mode === 'edit' && submitData.id) formData.append('id', submitData.id);
+
+          // Add other fields except questions
+          Object.keys(submitData).forEach(key => {
+            if (key !== 'questions') {
+              if (typeof submitData[key] === 'object' && submitData[key] !== null) {
+                formData.append(key, JSON.stringify(submitData[key]));
+              } else {
+                formData.append(key, submitData[key]);
+              }
+            }
+          });
+
+          // Add questions
+          // Add questions using Laravel array notation
+          questions.forEach((question, questionIndex) => {
+            formData.append(`questions[${questionIndex}][question_text]`, question.question_text || '');
+            formData.append(`questions[${questionIndex}][question_type_id]`, question.question_type_id || '');
+            formData.append(`questions[${questionIndex}][points]`, question.points || 1);
+            if (question.id) formData.append(`questions[${questionIndex}][id]`, question.id);
+
+            // In the handleSubmit function, update the FormData handling:
+            if (question.photo) {
+              formData.append(`questions[${questionIndex}][photo]`, question.photo);
+            }
+
+            // Add choices
+            question.choices?.forEach((choice, choiceIndex) => {
+              formData.append(`questions[${questionIndex}][choices][${choiceIndex}][choice_text]`, choice.choice_text || '');
+              formData.append(`questions[${questionIndex}][choices][${choiceIndex}][is_correct]`, choice.is_correct ? '1' : '0');
+              if (choice.id) formData.append(`questions[${questionIndex}][choices][${choiceIndex}][id]`, choice.id);
+            });
+          });
+
+          console.log('Submitting FormData with files');
+          await onSubmit(formData);
+
+        } else {
+          // No files, send JSON (include string paths)
+          submitData.questions = questions;
+          await onSubmit(submitData);
+        }
+      } else {
+        await onSubmit(submitData);
+      }
 
       onCancel();
-    } catch (error) {
-      message.error('Please check the form fields');
 
-      console.error(error)
+    } catch (error) {
+      console.error('Submit error:', error);
     } finally {
       setSubmitLoading(false);
     }
   };
+
 
   const getModalTitle = () => `${mode?.charAt(0).toUpperCase() + mode?.slice(1)} ${title}`;
 
@@ -150,6 +341,8 @@ const CrudModal = ({
   const renderQuestionField = (question, questionIndex) => {
     const isDisabled = mode === 'view';
     const selectedTypeFromOptions = questionTypeOptions?.find(opt => opt.value === question.question_type_id);
+    const readingQuestionTypeOptions = (questionTypeOptions || []).filter(opt => opt.label === 'Reading');
+
 
     let selectedTypeName;
     if (selectedTypeFromOptions) {
@@ -174,7 +367,7 @@ const CrudModal = ({
         title={`Question ${questionIndex + 1}`}
         style={{ marginBottom: 16 }}
         extra={!isDisabled && (
-          <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => removeQuestion(questionIndex)}>
+          <Button type="primary" danger size="small" icon={<DeleteOutlined />} onClick={() => removeQuestion(questionIndex)}>
             Remove
           </Button>
         )}
@@ -191,10 +384,73 @@ const CrudModal = ({
             />
           </div>
 
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <label>Photo (optional):</label>
+            <Upload
+              disabled={isDisabled}
+              name="photo"
+              customRequest={(options) => handleCustomRequest(options, questionIndex)}
+              accept="image/*"
+              fileList={fileList.filter(f => f.uid === `question-${questionIndex}`)}
+              onChange={({ fileList: newFileList }) =>
+                setFileList([
+                  ...fileList.filter(f => !f.uid.startsWith(`question-${questionIndex}`)),
+                  ...newFileList.map(f => ({ ...f, uid: `question-${questionIndex}` })),
+                ])
+              }
+              onRemove={async (file) => {
+                try {
+                  await axios.delete(`/quizzes/${data?.id}/questions/delete-photo`, {
+                    data: { filename: questions[questionIndex].photo },
+                  });
+
+                  // Clear file from UI state
+                  setFileList(prev =>
+                    prev.filter(f => f.uid !== `question-${questionIndex}`)
+                  );
+
+                  // Clear photo reference in question state
+                  const newQuestions = [...questions];
+                  newQuestions[questionIndex] = {
+                    ...newQuestions[questionIndex],
+                    photo: null,
+                  };
+                  setQuestions(newQuestions);
+
+                } catch (err) {
+                  console.error(err);
+                }
+              }}
+              listType="picture-card"
+              maxCount={1}
+            >
+              {fileList.some(f => f.uid === `question-${questionIndex}`) ? null : (
+                <div>
+                  <UploadOutlined />
+                  <div style={{ marginTop: 8 }}>Upload</div>
+                </div>
+              )}
+            </Upload>
+          </div>
+
           <div>
             <label>Question Type:</label>
             <Select
-              value={question.question_type_id}
+              value={question?.question_type_id}
+              onChange={(value) => {
+                updateQuestion(questionIndex, 'question_type_id', value);
+                // For Reading, clear choices
+                updateQuestion(questionIndex, 'choices', []);
+              }}
+              disabled={isDisabled}
+              style={{ width: '100%' }}
+              options={readingQuestionTypeOptions.map(d => ({
+                value: d.value,
+                label: d.label,
+              }))}
+            />
+            {/* <Select
+              value={question?.question_type_id}
               onChange={(value) => {
                 const selected = questionTypeOptions.find(opt => opt.value === value);
                 updateQuestion(questionIndex, 'question_type_id', value);
@@ -204,6 +460,7 @@ const CrudModal = ({
                   'True/False': 'true_false',
                   'Reading': 'reading'
                 };
+                
                 const selectedName = labelToName[selected?.label];
 
                 if (selectedName === 'true_false') {
@@ -223,7 +480,7 @@ const CrudModal = ({
                 value: d.value,
                 label: d.label,
               }))}
-            />
+            /> */}
           </div>
 
           <div>
@@ -382,15 +639,25 @@ const CrudModal = ({
 
   return (
     <Modal
-      title={getModalTitle()}
+      title={
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontWeight: 600, fontSize: 18 }}>{getModalTitle()}</span>
+        </div>
+      }
       open={visible}
       onCancel={onCancel}
       footer={renderFooter()}
-      width={1200}
+      width={1000}
       confirmLoading={loading}
-      style={{ top: 20, maxHeight: '70vh', overflowY: 'auto' }}
+      bodyStyle={{
+        maxHeight: "70vh",
+        overflowY: "auto",
+        padding: "20px 24px",
+        background: "#fafafa",
+        borderRadius: 8,
+      }}
       maskClosable={false}
-
+      centered
     >
       {mode === 'view' && renderViewContent()}
       {mode === 'delete' && renderDeleteContent()}

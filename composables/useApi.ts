@@ -152,6 +152,23 @@ export const useApi = <T>(endpoint: string) => {
     }
   }
 
+  async function uploadQuestionPhoto(quizId: string, file: File) {
+    const formData = new FormData();
+    formData.append("photo", file);
+
+    const response = await axios.post(
+      `/quizzes/${quizId}/questions/upload-photo`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data", // 👈 override JSON header
+        },
+      }
+    );
+
+    return response.data; // { message, data: { filename, url } }
+  }
+
   return {
     endpoint,
     item,
@@ -170,5 +187,6 @@ export const useApi = <T>(endpoint: string) => {
     destroy,
     // download,
     getOptions,
+    uploadQuestionPhoto,
   };
 };

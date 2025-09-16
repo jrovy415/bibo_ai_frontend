@@ -9,7 +9,7 @@ export default function StudentLayout() {
     };
 
     return (
-        <div className="student-layout" style={{ position: "relative", minHeight: "100vh" }}>
+        <div className="student-layout" style={{ position: "relative", minHeight: "100vh", maxWidth: "100vw", width: "100vw" }}>
             {/* Floating Logout button */}
             <Button
                 type="primary"
@@ -20,7 +20,7 @@ export default function StudentLayout() {
                 style={{
                     position: "fixed",
                     top: "20px",
-                    left: "20px",
+                    right: "20px",
                     zIndex: 9999,
                     boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
                     padding: "0 1.5rem",

@@ -225,15 +225,15 @@ const Dashboard = () => {
             required: true
           },
           { name: 'time_limit', label: 'Time Limit (minutes)', type: 'number' },
-          {
-            name: 'is_active',
-            label: 'Active?',
-            type: 'select',
-            options: [
-              { value: 1, label: 'Yes' },
-              { value: 0, label: 'No' }
-            ]
-          },
+          // {
+          //   name: 'is_active',
+          //   label: 'Active?',
+          //   type: 'select',
+          //   options: [
+          //     { value: 1, label: 'Yes' },
+          //     { value: 0, label: 'No' }
+          //   ]
+          // },
         ];
 
       case 'quiz-scores':
@@ -354,29 +354,63 @@ const Dashboard = () => {
 
   const handleUpdate = async (formData) => {
     try {
-      if (!formData.id) {
-        throw new Error('ID is required for update operation');
+      console.log('HandleUpdate received:', formData);
+      console.log('Is FormData:', formData instanceof FormData);
+
+      let id;
+
+      if (formData instanceof FormData) {
+        // Handle FormData (with file uploads) - Laravel format
+        id = formData.get('id');
+        console.log('ID from FormData:', id);
+
+        if (!id) {
+          throw new Error('ID is required for update operation');
+        }
+
+        // For Laravel FormData with array notation, we can send it directly
+        // Laravel will automatically parse questions[0][photo], questions[0][question_text], etc.
+        console.log('Sending FormData directly to Laravel with array notation');
+
+        // Log FormData contents for debugging
+        console.log('=== FormData being sent to API ===');
+        for (let [key, value] of formData.entries()) {
+          console.log(`${key}:`, value instanceof File ? `[File: ${value.name}]` : value);
+        }
+
+        // Send FormData directly - Laravel will handle the array notation
+        await update(id, formData);
+
+      } else {
+        // Handle regular object
+        id = formData.id;
+
+        if (!id) {
+          throw new Error('ID is required for update operation');
+        }
+
+        const { id: _, ...updateData } = formData;
+
+        // For quizzes, map questions to match backend structure
+        if (selectedKeys[0] === 'quizzes' && updateData.questions) {
+          updateData.questions = updateData.questions.map((question) => ({
+            id: question.id,
+            question_text: question.question_text,
+            question_type_id: question.question_type_id,
+            points: parseInt(question.points) || 1,
+            photo: question.photo || null, // Include photo path
+            choices: question.choices?.map((choice) => ({
+              id: choice.id,
+              choice_text: choice.choice_text,
+              is_correct: choice.is_correct || false
+            })) || []
+          }));
+        }
+
+        console.log('Sending JSON data:', updateData);
+        await update(id, updateData);
       }
 
-      console.log('Updating with data:', formData);
-      const { id, ...updateData } = formData;
-
-      // For quizzes, map questions to match backend structure
-      if (selectedKeys[0] === 'quizzes' && updateData.questions) {
-        updateData.questions = updateData.questions.map((question) => ({
-          id: question.id,
-          question_text: question.question_text,
-          question_type_id: question.question_type_id, // updated field
-          points: parseInt(question.points) || 1,
-          choices: question.choices?.map((choice) => ({
-            id: choice.id,
-            choice_text: choice.choice_text,
-            is_correct: choice.is_correct || false
-          })) || []
-        }));
-      }
-
-      await update(id, updateData);
       await index();
     } catch (error) {
       console.error('Update error:', error);

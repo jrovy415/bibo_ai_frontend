@@ -2,10 +2,11 @@ import { useEffect, useState } from "react";
 import { Card, Progress, Table, Spin, message, Button } from "antd";
 import axios from "../../plugins/axios";
 import { useAuth } from "../../composables/useAuth";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const StudentFinishedQuiz = () => {
     const location = useLocation();
+    const navigate = useNavigate();
     const { attemptId } = location.state || {};
 
     const [loading, setLoading] = useState(true);
@@ -13,26 +14,19 @@ const StudentFinishedQuiz = () => {
     const [answers, setAnswers] = useState([]);
     const [score, setScore] = useState(0);
 
-    const { authUser, getUser } = useAuth();
+    // const { getUser } = useAuth();
 
     useEffect(() => {
         const fetchQuizResult = async () => {
             try {
-                getUser();
-
-                // Fetch quiz attempt and answers
                 const res = await axios.get(`/quiz-attempts/${attemptId}`);
-                const { quiz, answers } = res.data.data;
+                const { quiz, answers, score } = res.data.data;
 
                 setQuizData(quiz);
                 setAnswers(answers);
-
-                // Calculate score
-                const correctCount = answers.filter(a => a.is_correct).length;
-                setScore(correctCount);
+                setScore(score ?? answers.filter(a => a.is_correct).length);
             } catch (err) {
                 console.error(err);
-                message.error("Failed to load quiz results.");
             } finally {
                 setLoading(false);
             }
@@ -50,6 +44,10 @@ const StudentFinishedQuiz = () => {
 
     if (!quizData)
         return <p style={{ textAlign: "center", marginTop: 50, fontSize: "1.2rem" }}>Quiz data not found.</p>;
+
+    const totalPoints = quizData.questions.reduce((sum, q) => sum + q.points, 0);
+    const percentage = ((score / totalPoints) * 100).toFixed(1);
+    const isPerfect = score === totalPoints;
 
     const columns = [
         {
@@ -77,9 +75,6 @@ const StudentFinishedQuiz = () => {
             key: "points",
         },
     ];
-
-    const totalPoints = quizData.questions.reduce((sum, q) => sum + q.points, 0);
-    const percentage = ((score / totalPoints) * 100).toFixed(1);
 
     return (
         <div
@@ -146,14 +141,38 @@ const StudentFinishedQuiz = () => {
                 style={{ width: "90%", maxWidth: 800, marginBottom: 30 }}
             />
 
-            <Button
-                type="primary"
-                size="large"
-                onClick={() => window.location.reload()}
-                style={{ backgroundColor: "#ff7f50", border: "none", padding: "10px 40px", borderRadius: 12 }}
-            >
-                Retake Quiz
-            </Button>
+            <div style={{ display: "flex", gap: "20px" }}>
+                {isPerfect || quizData.difficulty === "Introduction" ? (
+                    <Button
+                        type="primary"
+                        size="large"
+                        onClick={() => navigate("/student")}
+                        style={{ backgroundColor: "#4CAF50", border: "none", padding: "10px 40px", borderRadius: 12 }}
+                    >
+                        ✅ Finish
+                    </Button>
+                ) : (
+                    <>
+                        <Button
+                            type="primary"
+                            size="large"
+                            onClick={() => navigate("/student/quiz", { state: { quizId: quizData.id } })}
+                            style={{ backgroundColor: "#ff7f50", border: "none", padding: "10px 40px", borderRadius: 12 }}
+                        >
+                            🔄 Retake Quiz
+                        </Button>
+                        <Button
+                            type="default"
+                            size="large"
+                            onClick={() => navigate("/student")}
+                            style={{ padding: "10px 40px", borderRadius: 12 }}
+                        >
+                            Finish
+                        </Button>
+                    </>
+                )}
+            </div>
+
         </div>
     );
 };

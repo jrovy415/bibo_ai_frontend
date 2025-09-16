@@ -14,26 +14,21 @@ const QuestionTypes = () => {
         try {
             if (mode === 'create') {
                 await store(formData);
-                message.success('Question type created!');
             } else if (mode === 'edit') {
                 await update(formData.id, formData);
-                message.success('Question type updated!');
             }
             await index();
         } catch (error) {
             console.error(error);
-            message.error('Failed to save');
         }
     };
 
     const handleDelete = async (record) => {
         try {
             await destroy(record.id);
-            message.success('Deleted successfully');
             await index();
         } catch (error) {
             console.error(error);
-            message.error('Failed to delete');
         }
     };
 

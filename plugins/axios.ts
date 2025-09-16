@@ -4,7 +4,9 @@ import { Capacitor } from "@capacitor/core";
 
 // 👇 choose base URL depending on environment
 const api = "http://127.0.0.1:8000/backend/api/v1";
+const nonApi = "http://127.0.0.1:8000/storage";
 // const api = "https://bibo-ai-backend.onrender.com/backend/api/v1";
+// const nonApi = "https://bibo-ai-backend.onrender.com/";
 
 // Configure Ant Design notification globally
 notification.config({
@@ -62,7 +64,12 @@ axiosRequest.interceptors.response.use(
     const { status, data, request, config } = res;
 
     // Skip notifications for /quizzes endpoint
-    if (request.responseURL?.endsWith("/quizzes")) {
+    if (
+      request?.responseURL?.endsWith("/quizzes") ||
+      request?.responseURL?.endsWith("/quizzes/get-quiz") ||
+      request?.responseURL?.endsWith("/quiz-attempts") ||
+      request?.responseURL?.endsWith("/answers")
+    ) {
       return res;
     }
 
@@ -89,7 +96,10 @@ axiosRequest.interceptors.response.use(
     const { response, config, request } = error;
 
     // Skip notifications for /quizzes endpoint
-    if (request?.responseURL?.endsWith("/quizzes") || request?.responseURL?.endsWith("/quizzes/get-quiz")) {
+    if (
+      request?.responseURL?.endsWith("/quizzes") ||
+      request?.responseURL?.endsWith("/quizzes/get-quiz")
+    ) {
       return Promise.reject(error);
     }
 
@@ -160,4 +170,4 @@ axiosRequest.interceptors.response.use(
   }
 );
 
-export default axiosRequest;
+export { axiosRequest as default, nonApi };
