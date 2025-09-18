@@ -37,7 +37,7 @@ const AIintro = () => {
     }
     setTeacherError('');
     // TODO: Add real authentication logic here
-    navigate('/dashboard');
+    navigate('/');
   };
 
   const activeColor = '#a8d5a2'; // lighter green
