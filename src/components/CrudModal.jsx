@@ -686,34 +686,47 @@ const CrudModal = ({
           ))}
         </Descriptions>
 
-        {material && (material.title || material.content) ? (
-          <div style={{ marginTop: 24 }}>
-            <Divider orientation="left">Material (Optional)</Divider>
-            <Card size="small">
-              <Descriptions column={1} bordered size="small">
-                <Descriptions.Item label="Type">
-                  {material.type?.charAt(0).toUpperCase() + material.type?.slice(1)}
-                </Descriptions.Item>
-                {material.title && (
-                  <Descriptions.Item label="Title">{material.title}</Descriptions.Item>
-                )}
-                <Descriptions.Item label={material.type === 'story' ? 'Story Content' : 'URL'}>
-                  {material.type === 'youtube' || material.type === 'link' ? (
-                    <a href={material.content} target="_blank" rel="noopener noreferrer">
-                      {material.content}
-                    </a>
-                  ) : (
-                    <span>{material.content}</span>
-                  )}
-                </Descriptions.Item>
-              </Descriptions>
-            </Card>
-          </div>
-        ) : (
-          <div style={{ marginTop: 24 }}>
-            <Divider orientation="left">Material (Optional)</Divider>
-            <p style={{ color: '#888', fontStyle: 'italic' }}>No material added</p>
-          </div>
+        {title === 'Quiz' && (
+          <>
+            {material && (material.title || material.content) ? (
+              <div style={{ marginTop: 24 }}>
+                <Divider orientation="left">Material (Optional)</Divider>
+                <Card size="small">
+                  <Descriptions column={1} bordered size="small">
+                    <Descriptions.Item label="Type">
+                      {material.type?.charAt(0).toUpperCase() + material.type?.slice(1)}
+                    </Descriptions.Item>
+
+                    {material.title && (
+                      <Descriptions.Item label="Title">{material.title}</Descriptions.Item>
+                    )}
+
+                    <Descriptions.Item label={material.type === 'story' ? 'Story Content' : 'URL'}>
+                      {material.type === 'youtube' || material.type === 'link' ? (
+                        <a href={material.content} target="_blank" rel="noopener noreferrer">
+                          {material.content}
+                        </a>
+                      ) : (
+                        <span>{material.content}</span>
+                      )}
+                    </Descriptions.Item>
+                  </Descriptions>
+                </Card>
+              </div>
+            ) : (
+              <div style={{ marginTop: 24 }}>
+                <Divider orientation="left">Material (Optional)</Divider>
+                <p style={{ color: '#888', fontStyle: 'italic' }}>No material added</p>
+              </div>
+            )}
+
+            {questions.length > 0 && (
+              <div style={{ marginTop: 24 }}>
+                <Divider orientation="left">Questions</Divider>
+                {questions.map((q, idx) => renderQuestionField(q, idx))}
+              </div>
+            )}
+          </>
         )}
 
         {title === 'Quiz' && questions.length > 0 && (
