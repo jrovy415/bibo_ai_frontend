@@ -64,14 +64,14 @@ axiosRequest.interceptors.response.use(
     const { status, data, request, config } = res;
 
     // Skip notifications for /quizzes endpoint
-    if (
-      request?.responseURL?.endsWith("/quizzes") ||
-      request?.responseURL?.endsWith("/quizzes/get-quiz") ||
-      request?.responseURL?.endsWith("/quiz-attempts") ||
-      request?.responseURL?.endsWith("/answers")
-    ) {
-      return res;
-    }
+    // if (
+    //   request?.responseURL?.endsWith("/quizzes") ||
+    //   request?.responseURL?.endsWith("/quizzes/get-quiz") ||
+    //   request?.responseURL?.endsWith("/quiz-attempts") ||
+    //   request?.responseURL?.endsWith("/answers")
+    // ) {
+    //   return res;
+    // }
 
     const isLogout = request.responseURL?.endsWith("/logout");
     const isDelete = config.method === "delete";

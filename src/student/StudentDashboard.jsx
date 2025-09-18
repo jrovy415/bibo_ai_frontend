@@ -271,48 +271,48 @@ const StudentDashboard = () => {
                         </p>
                         <div style={{ backgroundColor: "rgba(255, 255, 255, 0.9)", padding: "16px", borderRadius: "12px", marginBottom: "24px", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}>
                             <p style={{ color: "#333", marginBottom: "10px", fontSize: "15px" }}><strong>📊 Difficulty:</strong> {availableQuiz.difficulty}</p>
-                            <p style={{ color: "#333", marginBottom: "10px", fontSize: "15px" }}><strong>⏰ Time Limit:</strong> {availableQuiz.time_limit} minutes</p>
+                            {/* <p style={{ color: "#333", marginBottom: "10px", fontSize: "15px" }}><strong>⏰ Time Limit:</strong> {availableQuiz.time_limit} minutes</p> */}
                             <p style={{ color: "#333", marginBottom: "0", fontSize: "15px" }}><strong>❓ Questions:</strong> {availableQuiz.questions?.length || 0}</p>
                         </div>
-                        <Button type="primary" size="large" onClick={() => startSpecificQuiz(availableQuiz.id)} style={{ background: "linear-gradient(90deg, #FF7F50, #FFB347)", border: "none", fontSize: "18px", height: "56px", paddingLeft: "40px", paddingRight: "40px", fontWeight: "bold", borderRadius: "15px", boxShadow: "0 6px 14px rgba(0,0,0,0.2)", marginRight: "16px" }}>🚀 Start Quiz</Button>
-                        <Button type="default" size="large" onClick={() => setShowAllQuizzes(true)} style={{ fontSize: "16px", height: "56px", paddingLeft: "32px", paddingRight: "32px", borderRadius: "15px", marginTop: "8px" }}>📋 View All Quizzes</Button>
+                        <Button type="primary" size="large" onClick={() => startSpecificQuiz(availableQuiz.id)} style={{ background: "linear-gradient(90deg, #FF7F50, #FFB347)", border: "none", fontSize: "18px", height: "56px", paddingLeft: "40px", paddingRight: "40px", fontWeight: "bold", borderRadius: "15px", boxShadow: "0 6px 14px rgba(0,0,0,0.2)" }}>🚀 Start Quiz</Button>
+                        {/* <Button type="default" size="large" onClick={() => setShowAllQuizzes(true)} style={{ fontSize: "16px", height: "56px", paddingLeft: "32px", paddingRight: "32px", borderRadius: "15px", marginTop: "8px" }}>📋 View All Quizzes</Button> */}
                     </Card>
                 ) : (
                     <Card style={{ borderRadius: "25px", background: "linear-gradient(135deg, #FFFAE3, #FFD1DC)", maxWidth: "800px", width: "100%", boxShadow: "0 10px 24px rgba(0,0,0,0.2)", border: "4px solid #FFD700", padding: "24px", marginTop: "100px" }}>
-                <div style={{ textAlign: "center", marginBottom: "32px" }}>
-                    <div style={{ fontSize: "64px", marginBottom: "16px" }}>📚</div>
-                    <Title level={2} style={{ margin: "0", color: "#333", fontFamily: "'Comic Sans MS', cursive" }}>All Available Quizzes</Title>
-                    <Text type="secondary">Choose any quiz to practice and improve your score!</Text>
-                </div>
-
-                {allQuizzes && difficultyOrder.map(difficulty => {
-                    const quizzesInDifficulty = allQuizzes[difficulty];
-                    if (!quizzesInDifficulty || quizzesInDifficulty.length === 0) return null;
-
-                    return (
-                        <div key={difficulty} style={{ marginBottom: "32px" }}>
-                            <div style={{ display: "flex", alignItems: "center", marginBottom: "16px", padding: "12px 16px", backgroundColor: difficultyColors[difficulty], borderRadius: "8px", color: "white" }}>
-                                <Title level={4} style={{ margin: 0, color: "white" }}>{difficulty} Level ({quizzesInDifficulty.length} quiz{quizzesInDifficulty.length !== 1 ? 'es' : ''})</Title>
-                            </div>
-                            {quizzesInDifficulty.map(quiz => renderQuizCard(quiz, difficulty))}
+                        <div style={{ textAlign: "center", marginBottom: "32px" }}>
+                            <div style={{ fontSize: "64px", marginBottom: "16px" }}>📚</div>
+                            <Title level={2} style={{ margin: "0", color: "#333", fontFamily: "'Comic Sans MS', cursive" }}>All Available Quizzes</Title>
+                            <Text type="secondary">Choose any quiz to practice and improve your score!</Text>
                         </div>
-                    );
-                })}
 
-                {availableQuiz && (
-                    <div style={{ textAlign: "center", marginTop: "24px" }}>
-                        <Button type="primary" size="large" onClick={() => setShowAllQuizzes(false)} style={{ background: "linear-gradient(90deg, #FF7F50, #FFB347)", border: "none", fontSize: "16px", height: "48px", paddingLeft: "32px", paddingRight: "32px", borderRadius: "12px" }}>← Back to Next Quiz</Button>
-                    </div>
-                )}
-            </Card>
+                        {allQuizzes && difficultyOrder.map(difficulty => {
+                            const quizzesInDifficulty = allQuizzes[difficulty];
+                            if (!quizzesInDifficulty || quizzesInDifficulty.length === 0) return null;
+
+                            return (
+                                <div key={difficulty} style={{ marginBottom: "32px" }}>
+                                    <div style={{ display: "flex", alignItems: "center", marginBottom: "16px", padding: "12px 16px", backgroundColor: difficultyColors[difficulty], borderRadius: "8px", color: "white" }}>
+                                        <Title level={4} style={{ margin: 0, color: "white" }}>{difficulty} Level ({quizzesInDifficulty.length} quiz{quizzesInDifficulty.length !== 1 ? 'es' : ''})</Title>
+                                    </div>
+                                    {quizzesInDifficulty.map(quiz => renderQuizCard(quiz, difficulty))}
+                                </div>
+                            );
+                        })}
+
+                        {availableQuiz && (
+                            <div style={{ textAlign: "center", marginTop: "24px" }}>
+                                <Button type="primary" size="large" onClick={() => setShowAllQuizzes(false)} style={{ background: "linear-gradient(90deg, #FF7F50, #FFB347)", border: "none", fontSize: "16px", height: "48px", paddingLeft: "32px", paddingRight: "32px", borderRadius: "12px" }}>← Back to Next Quiz</Button>
+                            </div>
+                        )}
+                    </Card>
                 )}
 
-            <div style={{ marginTop: "40px", textAlign: "center" }}>
-                <p style={{ color: "rgba(255,255,255,0.9)", fontSize: "18px", fontFamily: "'Comic Sans MS', 'Trebuchet MS', cursive", fontWeight: "600", textShadow: "1px 1px 2px rgba(0,0,0,0.3)" }}>
-                    Keep going! You're doing great! 💪
-                </p>
-            </div>
-        </Content>
+                <div style={{ marginTop: "40px", textAlign: "center" }}>
+                    <p style={{ color: "rgba(255,255,255,0.9)", fontSize: "18px", fontFamily: "'Comic Sans MS', 'Trebuchet MS', cursive", fontWeight: "600", textShadow: "1px 1px 2px rgba(0,0,0,0.3)" }}>
+                        Keep going! You're doing great! 💪
+                    </p>
+                </div>
+            </Content>
         </Layout >
     );
 };

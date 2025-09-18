@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Form, Input, Button, Space, Descriptions, message, Select, Card, Divider, Checkbox, InputNumber, Upload } from 'antd';
+import { Modal, Form, Input, Button, Space, Descriptions, message, Select, Card, Divider, Checkbox, InputNumber, Upload, Switch } from 'antd';
 import { PlusOutlined, DeleteOutlined, MinusCircleOutlined, UploadOutlined } from '@ant-design/icons';
 import axios, { nonApi } from '../../plugins/axios';
 
@@ -19,13 +19,69 @@ const CrudModal = ({
   const [submitLoading, setSubmitLoading] = useState(false);
   const [questions, setQuestions] = useState([]);
   const [fileList, setFileList] = useState([]);
+  const [material, setMaterial] = useState({ type: 'story', title: '', content: '' });
+
+  const QuizModel = () => ({
+    id: null,
+    title: '',
+    instructions: '',
+    grade: '',
+    subject: '',
+    questions: [],
+  });
+
+  const QuestionModel = () => ({
+    id: Date.now(),
+    question_text: '',
+    question_type_id: null,
+    points: 1,
+    is_answer: true,
+    actual_answer: '',
+    photo: null,
+    choices: [],
+  });
+
+  const ChoiceModel = () => ({
+    id: Date.now(),
+    choice_text: '',
+    is_correct: false,
+  });
+
+  const MaterialModel = () => ({
+    id: Date.now(),
+    type: 'youtube', // youtube, link, story, pdf, etc.
+    title: '',
+    url: '',
+  });
 
   useEffect(() => {
     if (mode === 'edit' || mode === 'view') {
       const formData = data || {};
       form.setFieldsValue(formData);
       if (title === 'Quiz' && data?.questions) {
-        setQuestions(data.questions);
+        const normalizedQuestions = data.questions.map(q => {
+          // default: assume question_text is the answer
+          let is_answer = true;
+          let actual_answer = "";
+
+          if (q.choices && q.choices.length > 0) {
+            const choice = q.choices[0];
+
+            // If choice_text is different from question_text → switch OFF
+            if (choice.choice_text.trim() !== q.question_text.trim()) {
+              is_answer = false;
+              actual_answer = choice.choice_text;
+            }
+          }
+
+          return {
+            ...q,
+            is_answer,
+            actual_answer,
+          };
+        });
+
+        setQuestions(normalizedQuestions);
 
         const existingFiles = data.questions.map((q, i) => {
           if (q.photo) {
@@ -44,6 +100,17 @@ const CrudModal = ({
         setFileList(existingFiles);
       } else {
         setQuestions([]);
+      }
+
+      if (data?.material) {
+        setMaterial({
+          id: data.material.id,
+          type: data.material.type || 'story',
+          title: data.material.title || '',   // backend didn’t send "title", default empty
+          content: data.material.content || '',
+        });
+      } else {
+        setMaterial({ type: 'story', title: '', content: '' });
       }
     } else if (mode === 'create') {
       form.resetFields();
@@ -95,7 +162,6 @@ const CrudModal = ({
           url: uploaded.url, // 👈 previewable URL from backend
         },
       ]);
-
 
       // ✅ tell AntD upload finished
       onSuccess({ url: uploaded.url }, file);
@@ -171,11 +237,34 @@ const CrudModal = ({
 
         for (let i = 0; i < questions.length; i++) {
           const q = questions[i];
-          if (!q.question_text?.trim()) {
-            setSubmitLoading(false);
-            message.error(`Please enter text for Question ${i + 1}`);
-            return;
+          const typeLabel = questionTypeOptions?.find(opt => opt.value === q.question_type_id)?.label;
+
+          // Validate based on is_answer field
+          if (q.is_answer === false) {
+            // When is_answer is false, actual_answer is required
+            if (!q.actual_answer?.trim()) {
+              setSubmitLoading(false);
+              message.error(`Please enter the actual answer for Question ${i + 1}`);
+              return;
+            }
+
+            // For Reading questions, actual_answer should not be the same as question_text
+            if (typeLabel === 'Reading' && q.question_text?.trim() && q.actual_answer?.trim()) {
+              if (q.question_text.trim().toLowerCase() === q.actual_answer.trim().toLowerCase()) {
+                setSubmitLoading(false);
+                message.error(`The actual answer cannot be the same as the question text for Question ${i + 1}`);
+                return;
+              }
+            }
+          } else {
+            // When is_answer is true, question_text is required
+            if (!q.question_text?.trim()) {
+              setSubmitLoading(false);
+              message.error(`Please enter text for Question ${i + 1}`);
+              return;
+            }
           }
+
           if (!q.question_type_id) {
             setSubmitLoading(false);
             message.error(`Please select question type for Question ${i + 1}`);
@@ -187,7 +276,6 @@ const CrudModal = ({
             return;
           }
 
-          const typeLabel = questionTypeOptions?.find(opt => opt.value === q.question_type_id)?.label;
           if (['Multiple Choice', 'True/False'].includes(typeLabel)) {
             if (!q.choices || q.choices.length === 0) {
               setSubmitLoading(false);
@@ -214,6 +302,10 @@ const CrudModal = ({
 
       // Handle Quiz submissions
       if (title === 'Quiz') {
+        submitData.material = material && (material.title || material.content)
+          ? material
+          : null;
+
         const hasFileUploads = questions.some(q => q.photo instanceof File);
 
         if (hasFileUploads) {
@@ -232,33 +324,61 @@ const CrudModal = ({
             }
           });
 
-          // Add questions
           // Add questions using Laravel array notation
           questions.forEach((question, questionIndex) => {
             formData.append(`questions[${questionIndex}][question_text]`, question.question_text || '');
             formData.append(`questions[${questionIndex}][question_type_id]`, question.question_type_id || '');
             formData.append(`questions[${questionIndex}][points]`, question.points || 1);
+            formData.append(`questions[${questionIndex}][is_answer]`, question.is_answer ? '1' : '0');
+
+            // Add actual_answer field when is_answer is false
+            if (question.is_answer === false && question.actual_answer) {
+              formData.append(`questions[${questionIndex}][actual_answer]`, question.actual_answer);
+            }
+
             if (question.id) formData.append(`questions[${questionIndex}][id]`, question.id);
 
-            // In the handleSubmit function, update the FormData handling:
             if (question.photo) {
               formData.append(`questions[${questionIndex}][photo]`, question.photo);
             }
 
-            // Add choices
-            question.choices?.forEach((choice, choiceIndex) => {
-              formData.append(`questions[${questionIndex}][choices][${choiceIndex}][choice_text]`, choice.choice_text || '');
-              formData.append(`questions[${questionIndex}][choices][${choiceIndex}][is_correct]`, choice.is_correct ? '1' : '0');
-              if (choice.id) formData.append(`questions[${questionIndex}][choices][${choiceIndex}][id]`, choice.id);
-            });
+            // Add choices - handle differently based on is_answer
+            if (question.is_answer === false) {
+              // When is_answer is false, use actual_answer as the single choice
+              formData.append(`questions[${questionIndex}][choices][0][choice_text]`, question.actual_answer || '');
+              formData.append(`questions[${questionIndex}][choices][0][is_correct]`, '1'); // Always correct since it's the actual answer
+            } else {
+              // When is_answer is true, use the regular choices array
+              question.choices?.forEach((choice, choiceIndex) => {
+                formData.append(`questions[${questionIndex}][choices][${choiceIndex}][choice_text]`, choice.choice_text || '');
+                formData.append(`questions[${questionIndex}][choices][${choiceIndex}][is_correct]`, choice.is_correct ? '1' : '0');
+                if (choice.id) formData.append(`questions[${questionIndex}][choices][${choiceIndex}][id]`, choice.id);
+              });
+            }
           });
 
           console.log('Submitting FormData with files');
           await onSubmit(formData);
 
         } else {
-          // No files, send JSON (include string paths)
-          submitData.questions = questions;
+          // No files, send JSON - process questions to handle is_answer logic
+          const processedQuestions = questions.map(question => {
+            if (question.is_answer === false) {
+              // When is_answer is false, create a single choice from actual_answer
+              return {
+                ...question,
+                choices: [{
+                  choice_text: question.actual_answer || '',
+                  is_correct: true // Always correct since it's the actual answer
+                }]
+              };
+            } else {
+              // When is_answer is true, use the regular choices
+              return question;
+            }
+          });
+
+          submitData.questions = processedQuestions;
           await onSubmit(submitData);
         }
       } else {
@@ -274,67 +394,44 @@ const CrudModal = ({
     }
   };
 
-
   const getModalTitle = () => `${mode?.charAt(0).toUpperCase() + mode?.slice(1)} ${title}`;
 
   // --- Question & Choice management ---
   const addQuestion = () => {
-    setQuestions([
-      ...questions,
-      {
-        id: Date.now(),
-        question_text: '',
-        question_type: questionTypeOptions[0]?.value || 'multiple_choice',
-        points: 1,
-        choices: [
-          { id: Date.now() + 1, choice_text: '', is_correct: false },
-          { id: Date.now() + 2, choice_text: '', is_correct: false },
-        ],
-      },
-    ]);
+    const newQuestion = QuestionModel();
+    // add 2 default choices
+    newQuestion.choices = [ChoiceModel(), ChoiceModel()];
+    setQuestions([...questions, newQuestion]);
   };
 
   const removeQuestion = (index) => setQuestions(questions.filter((_, i) => i !== index));
 
   const updateQuestion = (index, field, value) => {
     const newQuestions = [...questions];
-
     newQuestions[index][field] = value;
-
     setQuestions(newQuestions);
   };
 
   const addChoice = (questionIndex) => {
     const newQuestions = [...questions];
-
-    newQuestions[questionIndex].choices.push({
-      id: Date.now(),
-      choice_text: '',
-      is_correct: false,
-    });
-
+    newQuestions[questionIndex].choices.push(ChoiceModel());
     setQuestions(newQuestions);
   };
 
   const removeChoice = (questionIndex, choiceIndex) => {
     const newQuestions = [...questions];
-
     newQuestions[questionIndex].choices = newQuestions[questionIndex].choices.filter((_, i) => i !== choiceIndex);
-
     setQuestions(newQuestions);
   };
 
   const updateChoice = (questionIndex, choiceIndex, field, value) => {
     const newQuestions = [...questions];
-
     if (field === 'is_correct' && value) {
       newQuestions[questionIndex].choices.forEach((c, idx) => {
         if (idx !== choiceIndex) c.is_correct = false;
       });
     }
-
     newQuestions[questionIndex].choices[choiceIndex][field] = value;
-
     setQuestions(newQuestions);
   };
 
@@ -343,10 +440,8 @@ const CrudModal = ({
     const selectedTypeFromOptions = questionTypeOptions?.find(opt => opt.value === question.question_type_id);
     const readingQuestionTypeOptions = (questionTypeOptions || []).filter(opt => opt.label === 'Reading');
 
-
     let selectedTypeName;
     if (selectedTypeFromOptions) {
-      // Convert label to name format (you might need to adjust this mapping)
       const labelToName = {
         'Multiple Choice': 'multiple_choice',
         'True/False': 'true_false',
@@ -374,14 +469,41 @@ const CrudModal = ({
       >
         <Space direction="vertical" style={{ width: '100%' }}>
           <div>
-            <label>Question Text:</label>
+            <label>Question Text: {question.is_answer !== true ? "(Optional)" : ""} </label>
             <Input.TextArea
               value={question.question_text}
-              onChange={(e) => updateQuestion(questionIndex, 'question_text', e.target.value)}
+              onChange={(e) =>
+                updateQuestion(questionIndex, "question_text", e.target.value)
+              }
               placeholder="Enter your question"
               disabled={isDisabled}
               rows={2}
             />
+
+            <div style={{ marginTop: "1rem" }}>
+              <label style={{ marginRight: "8px" }}>Is Answer:</label>
+              <Switch
+                checked={!!question.is_answer} // true = question_text is the answer
+                onChange={(checked) => updateQuestion(questionIndex, "is_answer", checked)}
+                disabled={isDisabled}
+              />
+            </div>
+
+            {question.is_answer === false && (
+              <div style={{ marginTop: "1rem" }}>
+                <label>Actual Answer:</label>
+                <Input
+                  value={question.actual_answer || ""}
+                  onChange={(e) => {
+                    const updatedQuestions = [...questions];
+                    updatedQuestions[questionIndex].actual_answer = e.target.value;
+                    setQuestions(updatedQuestions);
+                  }}
+                  placeholder="Enter the Actual Answer"
+                  disabled={isDisabled}
+                />
+              </div>
+            )}
           </div>
 
           <div style={{ display: "flex", flexDirection: "column" }}>
@@ -398,7 +520,7 @@ const CrudModal = ({
                   ...newFileList.map(f => ({ ...f, uid: `question-${questionIndex}` })),
                 ])
               }
-              onRemove={async (file) => {
+              onRemove={async () => {
                 try {
                   await axios.delete(`/quizzes/${data?.id}/questions/delete-photo`, {
                     data: { filename: questions[questionIndex].photo },
@@ -449,38 +571,6 @@ const CrudModal = ({
                 label: d.label,
               }))}
             />
-            {/* <Select
-              value={question?.question_type_id}
-              onChange={(value) => {
-                const selected = questionTypeOptions.find(opt => opt.value === value);
-                updateQuestion(questionIndex, 'question_type_id', value);
-
-                const labelToName = {
-                  'Multiple Choice': 'multiple_choice',
-                  'True/False': 'true_false',
-                  'Reading': 'reading'
-                };
-                
-                const selectedName = labelToName[selected?.label];
-
-                if (selectedName === 'true_false') {
-                  // Automatically add True and False choices for true/false questions
-                  updateQuestion(questionIndex, 'choices', [
-                    { choice_text: 'True', is_correct: false },
-                    { choice_text: 'False', is_correct: false }
-                  ]);
-                } else {
-                  // Clear choices when changing to any other question type
-                  updateQuestion(questionIndex, 'choices', []);
-                }
-              }}
-              disabled={isDisabled}
-              style={{ width: '100%' }}
-              options={(questionTypeOptions || []).map((d) => ({
-                value: d.value,
-                label: d.label,
-              }))}
-            /> */}
           </div>
 
           <div>
@@ -510,10 +600,10 @@ const CrudModal = ({
                   value={choice.choice_text}
                   onChange={(e) => updateChoice(questionIndex, choiceIndex, 'choice_text', e.target.value)}
                   placeholder={`Choice ${choiceIndex + 1}`}
-                  disabled={isDisabled || isTrueFalse} // Disable editing for true/false choices
+                  disabled={isDisabled || isTrueFalse}
                   style={{ flex: 1 }}
                 />
-                {!isDisabled && !isTrueFalse && ( // Hide remove button for true/false choices
+                {!isDisabled && !isTrueFalse && (
                   <Button
                     type="text"
                     danger
@@ -596,6 +686,36 @@ const CrudModal = ({
           ))}
         </Descriptions>
 
+        {material && (material.title || material.content) ? (
+          <div style={{ marginTop: 24 }}>
+            <Divider orientation="left">Material (Optional)</Divider>
+            <Card size="small">
+              <Descriptions column={1} bordered size="small">
+                <Descriptions.Item label="Type">
+                  {material.type?.charAt(0).toUpperCase() + material.type?.slice(1)}
+                </Descriptions.Item>
+                {material.title && (
+                  <Descriptions.Item label="Title">{material.title}</Descriptions.Item>
+                )}
+                <Descriptions.Item label={material.type === 'story' ? 'Story Content' : 'URL'}>
+                  {material.type === 'youtube' || material.type === 'link' ? (
+                    <a href={material.content} target="_blank" rel="noopener noreferrer">
+                      {material.content}
+                    </a>
+                  ) : (
+                    <span>{material.content}</span>
+                  )}
+                </Descriptions.Item>
+              </Descriptions>
+            </Card>
+          </div>
+        ) : (
+          <div style={{ marginTop: 24 }}>
+            <Divider orientation="left">Material (Optional)</Divider>
+            <p style={{ color: '#888', fontStyle: 'italic' }}>No material added</p>
+          </div>
+        )}
+
         {title === 'Quiz' && questions.length > 0 && (
           <div style={{ marginTop: 24 }}>
             <Divider orientation="left">Questions</Divider>
@@ -672,15 +792,59 @@ const CrudModal = ({
           {fields.map(f => renderFormField(f))}
 
           {title === 'Quiz' && (
-            <div style={{ marginTop: 24 }}>
-              <Divider orientation="left">Questions</Divider>
-              {questions.map((q, idx) => renderQuestionField(q, idx))}
-              {mode !== 'view' && (
-                <Button type="dashed" onClick={addQuestion} style={{ width: '100%', marginTop: 16 }} icon={<PlusOutlined />}>
-                  Add Question
-                </Button>
-              )}
-            </div>
+            <>
+              <div style={{ marginTop: 24 }}>
+                <Divider orientation="left">Material (Optional)</Divider>
+                <Card size="small">
+                  <Space direction="vertical" style={{ width: '100%' }}>
+                    <div>
+                      <label>Type:</label>
+                      <Select
+                        value={material?.type}
+                        onChange={(val) => setMaterial({ ...material, type: val })}
+                        disabled={mode === 'view'}
+                        style={{ width: '100%' }}
+                        options={[
+                          { value: 'youtube', label: 'YouTube' },
+                          { value: 'link', label: 'Link' },
+                          { value: 'story', label: 'Story' },
+                        ]}
+                      />
+                    </div>
+
+                    <div>
+                      <label>Title:</label>
+                      <Input
+                        value={material.title}
+                        onChange={(e) => setMaterial({ ...material, title: e.target.value })}
+                        placeholder="Enter material title"
+                        disabled={mode === 'view'}
+                      />
+                    </div>
+
+                    <div>
+                      <label>{material.type === 'story' ? 'Story Content:' : 'URL:'}</label>
+                      <Input.TextArea
+                        value={material.content}
+                        onChange={(e) => setMaterial({ ...material, content: e.target.value })}
+                        placeholder={material.type === 'story' ? 'Enter story text' : 'Enter URL'}
+                        disabled={mode === 'view'}
+                        rows={material.type === 'story' ? 4 : 1}
+                      />
+                    </div>
+                  </Space>
+                </Card>
+              </div>
+              <div style={{ marginTop: 24 }}>
+                <Divider orientation="left">Questions</Divider>
+                {questions.map((q, idx) => renderQuestionField(q, idx))}
+                {mode !== 'view' && (
+                  <Button type="dashed" onClick={addQuestion} style={{ width: '100%', marginTop: 16 }} icon={<PlusOutlined />}>
+                    Add Question
+                  </Button>
+                )}
+              </div>
+            </>
           )}
         </Form>
       )}

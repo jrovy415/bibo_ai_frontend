@@ -4,6 +4,7 @@ import { AudioOutlined, SoundOutlined, PauseOutlined } from "@ant-design/icons";
 import axios, { nonApi } from "../../plugins/axios";
 import { useAuth } from "../../composables/useAuth";
 import { useNavigate } from "react-router-dom";
+import QuizMaterial from "../components/QuizMaterial";
 
 const StudentQuiz = () => {
     const [quiz, setQuiz] = useState(null);
@@ -15,8 +16,10 @@ const StudentQuiz = () => {
     const [transcript, setTranscript] = useState("");
     const [answers, setAnswers] = useState({});
     const [buttonDisabled, setButtonDisabled] = useState(false);
+    const [startDisabled, setStartDisabled] = useState(true);
 
     const [attemptId, setAttemptId] = useState(null); // store QuizAttempt ID
+    const [showMaterials, setShowMaterials] = useState(false);
 
     // TTS state
     const [isSpeaking, setIsSpeaking] = useState(true);
@@ -150,8 +153,13 @@ const StudentQuiz = () => {
 
             const introText = `Hello there! Welcome to ${quiz.title}. This is a ${quiz.difficulty} level quiz. Take your time and click the start quiz button when you're ready to begin. Good luck!`;
             setTimeout(() => {
-                speak(introText);
-            }, 1500); // Longer delay to ensure voice is loaded
+                speak(introText, () => {
+                    setStartDisabled(false); // ✅ enable after TTS finishes
+                });
+            }, 1500);
+        } else if (quiz && !started && !ttsEnabled) {
+            // ✅ if TTS is OFF, enable after short delay
+            setTimeout(() => setStartDisabled(false), 1000);
         }
     }, [quiz, started, ttsEnabled, friendlyVoice]);
 
@@ -349,21 +357,136 @@ const StudentQuiz = () => {
 
     if (!started)
         return (
-            <div
-                style={{
-                    width: "100vw",
-                    height: "100vh",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    padding: 20,
-                    backgroundImage: "url('/3436801_20252.jpg')",
-                    backgroundSize: "cover",
-                    backgroundPosition: "center",
-                    backgroundRepeat: "no-repeat",
-                }}
-            >
+            <>
+                <QuizMaterial
+                    visible={showMaterials}
+                    onClose={() => setShowMaterials(false)}
+                    material={quiz?.material && (quiz.material.title || quiz.material.content) ? quiz.material : null}
+                />
+
+                <div
+                    style={{
+                        width: "100vw",
+                        height: "100vh",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        padding: 20,
+                        backgroundImage: "url('/3436801_20252.jpg')",
+                        backgroundSize: "cover",
+                        backgroundPosition: "center",
+                        backgroundRepeat: "no-repeat",
+                    }}
+                >
+                    {/* TTS Control Button with Voice Info */}
+                    <div style={{
+                        position: "absolute",
+                        top: 20,
+                        right: 20,
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "flex-end",
+                        gap: 8
+                    }}>
+                        <Button
+                            onClick={toggleTTS}
+                            style={{
+                                backgroundColor: ttsEnabled ? "#52c41a" : "#ff4d4f",
+                                borderColor: ttsEnabled ? "#52c41a" : "#ff4d4f",
+                                color: "white",
+                                borderRadius: 8,
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 8,
+                            }}
+                            icon={isSpeaking ? <PauseOutlined /> : <SoundOutlined />}
+                        >
+                            {isSpeaking ? "Speaking..." : ttsEnabled ? "TTS ON" : "TTS OFF"}
+                        </Button>
+                        {friendlyVoice && (
+                            <span style={{
+                                fontSize: "11px",
+                                color: "white",
+                                backgroundColor: "rgba(0,0,0,0.6)",
+                                padding: "2px 6px",
+                                borderRadius: 4,
+                                textShadow: "none"
+                            }}>
+                                Voice: {friendlyVoice.name}
+                            </span>
+                        )}
+                    </div>
+
+                    <div
+                        style={{
+                            padding: "40px 60px",
+                            border: "10px solid rgba(255, 127, 80, 0.6)", // semi-solid border
+                            borderRadius: 20,
+                            backgroundColor: "rgba(255, 255, 255, 0.9)", // optional subtle overlay
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            gap: 20,
+                        }}
+                    >
+                        <h1 style={{ fontSize: "2.5rem", marginBottom: 20 }}>{quiz.title}</h1>
+                        <p style={{ fontSize: "1.2rem", marginBottom: 40 }}>
+                            Difficulty: <b>{quiz.difficulty}</b>
+                        </p>
+                        <Button
+                            type="default"
+                            size="large"
+                            onClick={() => setShowMaterials(true)}
+                            style={{
+                                backgroundColor: "#1890ff",
+                                borderColor: "#1890ff",
+                                border: "none",
+                                padding: "15px 40px",
+                                borderRadius: 12,
+                                fontSize: "1.2rem",
+                                color: "white",
+                            }}
+                        >
+                            📘 View Materials
+                        </Button>
+                        <Button
+                            type="primary"
+                            size="large"
+                            onClick={startQuiz}
+                            disabled={isSpeaking || startDisabled} // ✅ add startDisabled here
+                            style={{
+                                backgroundColor: (isSpeaking || startDisabled) ? "#ccc" : "#ff7f50",
+                                borderColor: (isSpeaking || startDisabled) ? "#ccc" : "#ff7f50",
+                                border: "none",
+                                padding: "15px 40px",
+                                borderRadius: 12,
+                                fontSize: "1.5rem",
+                                opacity: (isSpeaking || startDisabled) ? 0.6 : 1,
+                            }}
+                        >
+                            {isSpeaking ? "🔊 Speaking..." : "🚀 Start Quiz"}
+                        </Button>
+                    </div>
+                </div>
+            </>
+        );
+
+    return (
+        <>
+            <div style={{
+                width: "100vw",
+                height: "100vh",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: 20,
+                backgroundImage: "url('/3436801_20252.jpg')",
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                backgroundRepeat: "no-repeat",
+            }}>
                 {/* TTS Control Button with Voice Info */}
                 <div style={{
                     position: "absolute",
@@ -403,201 +526,112 @@ const StudentQuiz = () => {
                     )}
                 </div>
 
-                <div
+                <h1 style={{ fontSize: "2rem", marginBottom: 10 }}>{quiz.title}</h1>
+                <p style={{ fontSize: "1.2rem", marginBottom: 20 }}>
+                    Difficulty: <b>{quiz.difficulty}</b>
+                </p>
+
+                <Progress percent={questions.length ? ((currentIndex + 1) / questions.length) * 100 : 0} style={{ width: "80%", marginBottom: 20 }} />
+
+                <Card
                     style={{
-                        padding: "40px 60px",
-                        border: "10px solid rgba(255, 127, 80, 0.6)", // semi-solid border
+                        width: "90%",
+                        maxWidth: 700,
+                        textAlign: "center",
+                        padding: "30px 40px",
+                        boxShadow: "0 8px 20px rgba(0,0,0,0.15)",
+                        fontSize: "2rem",
+                        fontWeight: "bold",
+                        border: "8px solid rgba(255, 127, 80, 0.6)",
                         borderRadius: 20,
-                        backgroundColor: "rgba(255, 255, 255, 0.9)", // optional subtle overlay
+                        backgroundColor: "rgba(255, 255, 255, 0.95)",
                         display: "flex",
                         flexDirection: "column",
-                        alignItems: "center",
-                        gap: 20,
+                        alignItems: "center", // ✅ center children horizontally
                     }}
                 >
-                    <h1 style={{ fontSize: "2.5rem", marginBottom: 20 }}>{quiz.title}</h1>
-                    <p style={{ fontSize: "1.2rem", marginBottom: 40 }}>
-                        Difficulty: <b>{quiz.difficulty}</b>
-                    </p>
-                    <Button
-                        type="primary"
-                        size="large"
-                        onClick={startQuiz}
-                        disabled={isSpeaking}
-                        style={{
-                            backgroundColor: isSpeaking ? "#ccc" : "#ff7f50",
-                            borderColor: isSpeaking ? "#ccc" : "#ff7f50",
-                            border: "none",
-                            padding: "15px 40px",
-                            borderRadius: 12,
-                            fontSize: "1.5rem",
-                            opacity: isSpeaking ? 0.6 : 1,
-                        }}
-                    >
-                        {isSpeaking ? "🔊 Speaking..." : "🚀 Start Quiz"}
-                    </Button>
-                </div>
-            </div>
-
-        );
-
-    return (
-        <div style={{
-            width: "100vw",
-            height: "100vh",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 20,
-            backgroundImage: "url('/3436801_20252.jpg')",
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            backgroundRepeat: "no-repeat",
-        }}>
-            {/* TTS Control Button with Voice Info */}
-            <div style={{
-                position: "absolute",
-                top: 20,
-                right: 20,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "flex-end",
-                gap: 8
-            }}>
-                <Button
-                    onClick={toggleTTS}
-                    style={{
-                        backgroundColor: ttsEnabled ? "#52c41a" : "#ff4d4f",
-                        borderColor: ttsEnabled ? "#52c41a" : "#ff4d4f",
-                        color: "white",
-                        borderRadius: 8,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                    }}
-                    icon={isSpeaking ? <PauseOutlined /> : <SoundOutlined />}
-                >
-                    {isSpeaking ? "Speaking..." : ttsEnabled ? "TTS ON" : "TTS OFF"}
-                </Button>
-                {friendlyVoice && (
-                    <span style={{
-                        fontSize: "11px",
-                        color: "white",
-                        backgroundColor: "rgba(0,0,0,0.6)",
-                        padding: "2px 6px",
-                        borderRadius: 4,
-                        textShadow: "none"
-                    }}>
-                        Voice: {friendlyVoice.name}
-                    </span>
-                )}
-            </div>
-
-            <h1 style={{ fontSize: "2rem", marginBottom: 10 }}>{quiz.title}</h1>
-            <p style={{ fontSize: "1.2rem", marginBottom: 20 }}>
-                Difficulty: <b>{quiz.difficulty}</b>
-            </p>
-
-            <Progress percent={questions.length ? ((currentIndex + 1) / questions.length) * 100 : 0} style={{ width: "80%", marginBottom: 20 }} />
-
-            <Card
-                style={{
-                    width: "90%",
-                    maxWidth: 700,
-                    textAlign: "center",
-                    padding: "30px 40px",
-                    boxShadow: "0 8px 20px rgba(0,0,0,0.15)",
-                    fontSize: "2rem",
-                    fontWeight: "bold",
-                    border: "8px solid rgba(255, 127, 80, 0.6)",
-                    borderRadius: 20,
-                    backgroundColor: "rgba(255, 255, 255, 0.95)",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center", // ✅ center children horizontally
-                }}
-            >
-                {/* ✅ Show image only if it exists */}
-                {currentQuestion?.photo && (
-                    <img
-                        src={`${nonApi}/${currentQuestion.photo}`}
-                        alt="Question"
-                        style={{
-                            maxWidth: "350px", // ✅ slightly smaller
-                            maxHeight: "250px",
-                            width: "100%",
-                            height: "auto",
-                            objectFit: "contain",
-                            marginBottom: 20,
-                            borderRadius: 12,
-                            boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
-                        }}
-                    />
-                )}
-
-                {/* ✅ Question text */}
-                <div style={{ marginBottom: 20 }}>{currentQuestion?.question_text}</div>
-
-                {/* ✅ Status */}
-                <div style={{ fontSize: "1.3rem", marginTop: 10 }}>
-                    {isSpeaking ? (
-                        <span style={{ color: "blue", fontWeight: "bold" }}>
-                            🔊 Reading question...
-                        </span>
-                    ) : recStatus === "listening" ? (
-                        <span
+                    {/* ✅ Show image only if it exists */}
+                    {currentQuestion?.photo && (
+                        <img
+                            src={`${nonApi}/${currentQuestion.photo}`}
+                            alt="Question"
                             style={{
-                                color: "red",
-                                fontWeight: "bold",
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: 8,
+                                maxWidth: "350px", // ✅ slightly smaller
+                                maxHeight: "250px",
+                                width: "100%",
+                                height: "auto",
+                                objectFit: "contain",
+                                marginBottom: 20,
+                                borderRadius: 12,
+                                boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
                             }}
-                        >
-                            <AudioOutlined />
-                            Listening…
-                        </span>
-                    ) : recStatus === "error" ? (
-                        <span style={{ color: "crimson" }}>
-                            Mic unavailable. Check permissions.
-                        </span>
-                    ) : transcript && recStatus === "idle" ? (
-                        <span style={{ color: "green", fontWeight: "bold" }}>
-                            🎉 Answer captured! You can proceed →
-                        </span>
-                    ) : null}
-                </div>
-            </Card>
+                        />
+                    )}
+
+                    {/* ✅ Question text */}
+                    <div style={{ marginBottom: 20 }}>{currentQuestion?.question_text}</div>
+
+                    {/* ✅ Status */}
+                    <div style={{ fontSize: "1.3rem", marginTop: 10 }}>
+                        {isSpeaking ? (
+                            <span style={{ color: "blue", fontWeight: "bold" }}>
+                                🔊 Reading question...
+                            </span>
+                        ) : recStatus === "listening" ? (
+                            <span
+                                style={{
+                                    color: "red",
+                                    fontWeight: "bold",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 8,
+                                }}
+                            >
+                                <AudioOutlined />
+                                Listening…
+                            </span>
+                        ) : recStatus === "error" ? (
+                            <span style={{ color: "crimson" }}>
+                                Mic unavailable. Check permissions.
+                            </span>
+                        ) : transcript && recStatus === "idle" ? (
+                            <span style={{ color: "green", fontWeight: "bold" }}>
+                                🎉 Answer captured! You can proceed →
+                            </span>
+                        ) : null}
+                    </div>
+                </Card>
 
 
-            <Button
-                type="primary"
-                size="large"
-                onClick={handleNext}
-                disabled={recStatus === "listening" || (!transcript && recStatus === "idle") || isSpeaking}
-                style={{
-                    backgroundColor: (recStatus === "listening" || (!transcript && recStatus === "idle") || isSpeaking) ? "#ccc" : "#ff7f50",
-                    borderColor: (recStatus === "listening" || (!transcript && recStatus === "idle") || isSpeaking) ? "#ccc" : "#ff7f50",
-                    color: "#fff",
-                    padding: "10px 30px",
-                    height: "auto",
-                    borderRadius: "10px",
-                    cursor: (recStatus === "listening" || (!transcript && recStatus === "idle") || isSpeaking) ? "not-allowed" : "pointer",
-                    marginTop: "20px",
-                    fontWeight: "bold",
-                    fontSize: "16px",
-                    boxShadow: (recStatus === "listening" || (!transcript && recStatus === "idle") || isSpeaking) ? "none" : "0 4px 8px rgba(255, 127, 80, 0.3)",
-                    transition: "all 0.3s ease",
-                    opacity: (recStatus === "listening" || (!transcript && recStatus === "idle") || isSpeaking) ? 0.6 : 1
-                }}
-            >
-                {isSpeaking ? "🔊 Speaking..." :
-                    recStatus === "listening" ? "Please wait..." :
-                        (currentIndex === questions.length - 1 ? "Finish" : "Next")}
-            </Button>
-        </div>
+                <Button
+                    type="primary"
+                    size="large"
+                    onClick={handleNext}
+                    disabled={recStatus === "listening" || (!transcript && recStatus === "idle") || isSpeaking}
+                    style={{
+                        backgroundColor: (recStatus === "listening" || (!transcript && recStatus === "idle") || isSpeaking) ? "#ccc" : "#ff7f50",
+                        borderColor: (recStatus === "listening" || (!transcript && recStatus === "idle") || isSpeaking) ? "#ccc" : "#ff7f50",
+                        color: "#fff",
+                        padding: "10px 30px",
+                        height: "auto",
+                        borderRadius: "10px",
+                        cursor: (recStatus === "listening" || (!transcript && recStatus === "idle") || isSpeaking) ? "not-allowed" : "pointer",
+                        marginTop: "20px",
+                        fontWeight: "bold",
+                        fontSize: "16px",
+                        boxShadow: (recStatus === "listening" || (!transcript && recStatus === "idle") || isSpeaking) ? "none" : "0 4px 8px rgba(255, 127, 80, 0.3)",
+                        transition: "all 0.3s ease",
+                        opacity: (recStatus === "listening" || (!transcript && recStatus === "idle") || isSpeaking) ? 0.6 : 1
+                    }}
+                >
+                    {isSpeaking ? "🔊 Speaking..." :
+                        recStatus === "listening" ? "Please wait..." :
+                            (currentIndex === questions.length - 1 ? "Finish" : "Next")}
+                </Button>
+            </div>
+        </>
     );
+
 };
 
 export default StudentQuiz;

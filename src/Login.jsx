@@ -3,8 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { speakText } from './ttsUtil';
 import { MdHeadset } from 'react-icons/md';
 import { useAuth } from "../composables/useAuth"
-import { Button } from "antd";
+import { Button, Card, Spin } from "antd";
+import { useMicPermission } from "../composables/useMicPermission";
 import axios from '../plugins/axios';
+import Title from 'antd/es/skeleton/Title';
+import Paragraph from 'antd/es/typography/Paragraph';
+import { AudioOutlined, FrownOutlined, LoadingOutlined } from '@ant-design/icons';
 
 export default function Login() {
   const [activeTab, setActiveTab] = useState('Student');
@@ -30,6 +34,8 @@ export default function Login() {
   const hiButtonRef = useRef(null);
 
   const { loading, login } = useAuth();
+
+  const micGranted = useMicPermission();
 
   useEffect(() => {
     // Removed animation effect for moving click and mouse images as unnecessary
@@ -199,6 +205,83 @@ export default function Login() {
       return newState;
     });
   };
+
+  const backgroundStyle = {
+    backgroundImage: "url('/3436801_20252.jpg')",
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+    backgroundRepeat: "no-repeat",
+    height: "100vh",
+    width: "100vw",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  };
+
+  // 🎤 Loading state
+  if (micGranted === null) {
+    return (
+      <div style={backgroundStyle}>
+        <Card
+          bordered={false}
+          style={{
+            maxWidth: 400,
+            textAlign: "center",
+            padding: "2rem",
+            borderRadius: "20px",
+            boxShadow: "0 8px 20px rgba(0,0,0,0.15)",
+            background: "rgba(255,255,255,0.9)",
+          }}
+        >
+          <LoadingOutlined style={{ fontSize: "4rem", color: "#722ed1" }} spin />
+          <Title level={3} style={{ marginTop: "1rem", color: "#722ed1" }}>
+            Checking Microphone…
+          </Title>
+          <Paragraph style={{ fontSize: "1.1rem", color: "#555" }}>
+            Hang tight! We’re making sure your mic is ready for fun. 🎶
+          </Paragraph>
+        </Card>
+      </div>
+    );
+  }
+
+  // ❌ Denied state
+  if (micGranted === false) {
+    return (
+      <div style={backgroundStyle}>
+        <Card
+          bordered={false}
+          style={{
+            maxWidth: 480,
+            textAlign: "center",
+            padding: "2rem",
+            borderRadius: "20px",
+            boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
+            background: "rgba(255,255,255,0.9)",
+          }}
+        >
+          <FrownOutlined style={{ fontSize: "4rem", color: "#ff4d4f" }} />
+          <Title level={2} style={{ color: "#ff4d4f", marginTop: "1rem" }}>
+            Oops! Microphone Needed 🎤
+          </Title>
+          <Paragraph style={{ fontSize: "1.1rem", marginBottom: "1.5rem", color: "#555" }}>
+            We need your microphone so you can have fun with the quizzes!
+            Please turn it on and try again. 🌟
+          </Paragraph>
+          <Button
+            type="primary"
+            size="large"
+            shape="round"
+            icon={<AudioOutlined />}
+            style={{ backgroundColor: "#52c41a", borderColor: "#52c41a" }}
+            onClick={() => window.location.reload()}
+          >
+            Try Again
+          </Button>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div
