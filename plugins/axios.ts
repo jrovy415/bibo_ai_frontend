@@ -6,7 +6,7 @@ import { Capacitor } from "@capacitor/core";
 // const api = "http://127.0.0.1:8000/backend/api/v1";
 // const nonApi = "http://127.0.0.1:8000/storage";
 const api = "https://bibo-ai-backend.onrender.com/backend/api/v1";
-const nonApi = "https://bibo-ai-backend.onrender.com/";
+const nonApi = "https://bibo-ai-backend.onrender.com/storage";
 
 // Configure Ant Design notification globally
 notification.config({
