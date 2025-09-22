@@ -35,43 +35,50 @@ const StudentQuiz = () => {
 
     // Load Zira voice
     useEffect(() => {
-        const loadVoice = () => {
-            const voices = window.speechSynthesis.getVoices();
+    const loadVoice = () => {
+        const voices = window.speechSynthesis.getVoices();
 
-            // Find Microsoft Zira voice specifically
-            const zira = voices.find(voice =>
-                voice.name.toLowerCase().includes('zira')
-            );
+        // First priority: Microsoft Zira
+        const zira = voices.find(voice =>
+            voice.name.toLowerCase().includes('zira')
+        );
 
-            if (zira) {
-                setFriendlyVoice(zira);
-                console.log("Zira voice found:", zira.name);
-            } else {
-                // Fallback to other child-friendly voices if Zira is not available
-                const childFriendlyVoice = voices.find(voice =>
-                    voice.name.toLowerCase().includes('karen') ||
-                    voice.name.toLowerCase().includes('samantha') ||
-                    voice.name.toLowerCase().includes('alice') ||
-                    (voice.name.toLowerCase().includes('female') && voice.lang.startsWith('en'))
-                );
+        if (zira) {
+            setFriendlyVoice(zira);
+            console.log("Zira voice found:", zira.name);
+            return;
+        }
 
-                if (childFriendlyVoice) {
-                    setFriendlyVoice(childFriendlyVoice);
-                    console.log("Child-friendly voice found:", childFriendlyVoice.name);
-                }
-            }
-        };
+        // Fallback: other child-friendly voices
+        const childFriendlyVoice = voices.find(voice =>
+            voice.name.toLowerCase().includes('karen') ||
+            voice.name.toLowerCase().includes('samantha') ||
+            voice.name.toLowerCase().includes('alice') ||
+            voice.name.toLowerCase().includes('tessa') || // iOS
+            voice.name.toLowerCase().includes('moira') || // iOS
+            voice.name.toLowerCase().includes('serena') || // iOS
+            voice.name.toLowerCase().includes('victoria') || // iOS
+            voice.name.toLowerCase().includes('google us english') || // Android
+            voice.name.toLowerCase().includes('google uk english female') || // Android
+            (voice.name.toLowerCase().includes('female') && voice.lang.startsWith('en'))
+        );
 
-        // Load voices immediately if available
-        loadVoice();
+        if (childFriendlyVoice) {
+            setFriendlyVoice(childFriendlyVoice);
+            console.log("Child-friendly voice found:", childFriendlyVoice.name);
+        }
+    };
 
-        // Also load when voices change (some browsers load voices asynchronously)
-        window.speechSynthesis.onvoiceschanged = loadVoice;
+    // Load immediately
+    loadVoice();
 
-        return () => {
-            window.speechSynthesis.onvoiceschanged = null;
-        };
-    }, []);
+    // Some browsers load voices async
+    window.speechSynthesis.onvoiceschanged = loadVoice;
+
+    return () => {
+        window.speechSynthesis.onvoiceschanged = null;
+    };
+}, []);
 
     // TTS Functions
     const speak = (text, callback) => {
