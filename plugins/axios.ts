@@ -154,7 +154,11 @@ axiosRequest.interceptors.response.use(
           description: "Authentication Error. Please login again.",
           placement: "topRight",
         });
+
+        // 🔑 Clear both tokens
         window.localStorage.removeItem("APP_TOKEN");
+        window.localStorage.removeItem("APP_STUDENT_TOKEN");
+
         window.location.href = "/";
       } else {
         notification.error({
