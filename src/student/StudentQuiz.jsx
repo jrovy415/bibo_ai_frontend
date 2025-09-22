@@ -33,52 +33,121 @@ const StudentQuiz = () => {
 
     const navigate = useNavigate();
 
-    // Load Zira voice
+    // Load Zira voice with mobile-friendly fallbacks
     useEffect(() => {
-    const loadVoice = () => {
-        const voices = window.speechSynthesis.getVoices();
+        const loadVoice = () => {
+            const voices = window.speechSynthesis.getVoices();
 
-        // First priority: Microsoft Zira
-        const zira = voices.find(voice =>
-            voice.name.toLowerCase().includes('zira')
-        );
+            if (voices.length === 0) return; // Wait for voices to load
 
-        if (zira) {
-            setFriendlyVoice(zira);
-            console.log("Zira voice found:", zira.name);
-            return;
-        }
+            // Find Microsoft Zira voice specifically (Windows)
+            const zira = voices.find(voice =>
+                voice.name.toLowerCase().includes('zira')
+            );
 
-        // Fallback: other child-friendly voices
-        const childFriendlyVoice = voices.find(voice =>
-            voice.name.toLowerCase().includes('karen') ||
-            voice.name.toLowerCase().includes('samantha') ||
-            voice.name.toLowerCase().includes('alice') ||
-            voice.name.toLowerCase().includes('tessa') || // iOS
-            voice.name.toLowerCase().includes('moira') || // iOS
-            voice.name.toLowerCase().includes('serena') || // iOS
-            voice.name.toLowerCase().includes('victoria') || // iOS
-            voice.name.toLowerCase().includes('google us english') || // Android
-            voice.name.toLowerCase().includes('google uk english female') || // Android
-            (voice.name.toLowerCase().includes('female') && voice.lang.startsWith('en'))
-        );
+            if (zira) {
+                setFriendlyVoice(zira);
+                console.log("Zira voice found:", zira.name);
+                return;
+            }
 
-        if (childFriendlyVoice) {
-            setFriendlyVoice(childFriendlyVoice);
-            console.log("Child-friendly voice found:", childFriendlyVoice.name);
-        }
-    };
+            // Mobile-specific fallbacks
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-    // Load immediately
-    loadVoice();
+            if (isMobile) {
+                // iOS fallbacks (in order of preference)
+                const iosVoices = [
+                    'Samantha',           // iOS English female voice
+                    'Karen',              // iOS Australian English
+                    'Tessa',              // iOS South African English
+                    'Veena',              // iOS Indian English
+                    'Moira',              // iOS Irish English
+                    'Alex'                // iOS default male (as last resort)
+                ];
 
-    // Some browsers load voices async
-    window.speechSynthesis.onvoiceschanged = loadVoice;
+                // Android fallbacks (in order of preference)
+                const androidVoices = [
+                    'en-us-x-sfg#female_1-local',  // Google TTS female
+                    'en-us-x-sfg#female_2-local',  // Google TTS female alt
+                    'en-gb-x-gba#female_1-local',  // Google TTS British female
+                    'en-au-x-aua#female_1-local',  // Google TTS Australian female
+                    'Google US English Female',     // Older Google TTS naming
+                    'Google UK English Female',     // Older Google TTS naming
+                ];
 
-    return () => {
-        window.speechSynthesis.onvoiceschanged = null;
-    };
-}, []);
+                const mobileFallbacks = navigator.userAgent.includes('iPhone') || navigator.userAgent.includes('iPad')
+                    ? iosVoices
+                    : androidVoices;
+
+                // Try to find mobile-specific voices first
+                for (const voiceName of mobileFallbacks) {
+                    const mobileVoice = voices.find(voice =>
+                        voice.name.includes(voiceName) ||
+                        voice.name.toLowerCase().includes(voiceName.toLowerCase())
+                    );
+                    if (mobileVoice) {
+                        setFriendlyVoice(mobileVoice);
+                        console.log("Mobile voice found:", mobileVoice.name);
+                        return;
+                    }
+                }
+            }
+
+            // General fallbacks for desktop and mobile (if specific mobile voices not found)
+            const generalFallbacks = [
+                // Child-friendly names
+                'Karen', 'Samantha', 'Alice', 'Susan', 'Victoria', 'Allison',
+                // Generic patterns
+                voice => voice.name.toLowerCase().includes('female') && voice.lang.startsWith('en'),
+                voice => voice.name.toLowerCase().includes('woman') && voice.lang.startsWith('en'),
+                // Default English voices
+                voice => voice.lang.startsWith('en-US') && voice.name.includes('Female'),
+                voice => voice.lang.startsWith('en-GB') && voice.name.includes('Female'),
+                voice => voice.lang.startsWith('en') && !voice.name.toLowerCase().includes('male'),
+                // Last resort - any English voice
+                voice => voice.lang.startsWith('en')
+            ];
+
+            for (const fallback of generalFallbacks) {
+                let foundVoice;
+
+                if (typeof fallback === 'string') {
+                    foundVoice = voices.find(voice =>
+                        voice.name.toLowerCase().includes(fallback.toLowerCase())
+                    );
+                } else if (typeof fallback === 'function') {
+                    foundVoice = voices.find(fallback);
+                }
+
+                if (foundVoice) {
+                    setFriendlyVoice(foundVoice);
+                    console.log("Fallback voice found:", foundVoice.name);
+                    return;
+                }
+            }
+
+            // Absolute last resort - use the first available voice
+            if (voices.length > 0) {
+                setFriendlyVoice(voices[0]);
+                console.log("Default voice used:", voices[0].name);
+            }
+        };
+
+        // Load voices immediately if available
+        loadVoice();
+
+        // Also load when voices change (some browsers load voices asynchronously)
+        const handleVoicesChanged = () => {
+            // Add a small delay to ensure voices are fully loaded
+            setTimeout(loadVoice, 100);
+        };
+
+        window.speechSynthesis.onvoiceschanged = handleVoicesChanged;
+
+        return () => {
+            window.speechSynthesis.onvoiceschanged = null;
+        };
+    }, []);
 
     // TTS Functions
     const speak = (text, callback) => {
