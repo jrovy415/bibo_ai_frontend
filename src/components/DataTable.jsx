@@ -18,7 +18,11 @@ const DataTable = ({
   showDelete = true,
   tableProps = {},
   authUser,
-  questionTypeOptions
+  questionTypeOptions,
+  // New pagination props
+  pagination = null, // Pagination data from API response
+  onPageChange, // Callback function for page changes
+  onPageSizeChange, // Callback function for page size changes
 }) => {
   const [modalState, setModalState] = useState({
     visible: false,
@@ -88,6 +92,38 @@ const DataTable = ({
       setActionLoading(false);
     }
   };
+
+  // Handle pagination change
+  const handleTableChange = (paginationConfig) => {
+    if (onPageChange && paginationConfig.current !== pagination?.current_page) {
+      onPageChange(paginationConfig.current);
+    }
+
+    if (onPageSizeChange && paginationConfig.pageSize !== pagination?.per_page) {
+      onPageSizeChange(paginationConfig.pageSize, paginationConfig.current);
+    }
+  };
+
+  // Configure pagination based on API response
+  const paginationConfig = pagination ? {
+    current: pagination.current_page,
+    total: pagination.total,
+    pageSize: pagination.per_page,
+    showSizeChanger: false,
+    showQuickJumper: false,
+    showTotal: (total, range) => {
+      const from = pagination.from || range[0];
+      const to = pagination.to || range[1];
+      return `${from}-${to} of ${total} items`;
+    },
+    pageSizeOptions: ['10', '20', '50', '100'],
+    onChange: (page, pageSize) => {
+      if (onPageChange) onPageChange(page);
+    },
+    onShowSizeChange: (current, size) => {
+      if (onPageSizeChange) onPageSizeChange(size, 1); // Reset to first page when changing size
+    }
+  } : false;
 
   // Enhanced columns with actions
   const enhancedColumns = [
@@ -164,13 +200,8 @@ const DataTable = ({
         columns={enhancedColumns}
         dataSource={data}
         loading={loading}
-        pagination={{
-          pageSize: 10,
-          showSizeChanger: true,
-          showQuickJumper: true,
-          showTotal: (total, range) =>
-            `${range[0]}-${range[1]} of ${total} items`,
-        }}
+        pagination={paginationConfig}
+        onChange={handleTableChange}
         scroll={{ x: 'max-content' }}
         size="middle"
         {...tableProps}

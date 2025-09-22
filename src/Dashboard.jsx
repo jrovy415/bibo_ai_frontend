@@ -39,9 +39,16 @@ const Dashboard = () => {
   const [showEdit, setShowEdit] = useState(true);
   const [showDelete, setShowDelete] = useState(true);
   const [questionTypes, setQuestionTypes] = useState([]);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [pagination, setPagination] = useState(null);
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   const { authUser, logout, getUser } = useAuth();
-  const { loading, items, index, store, update, destroy, show } = useApi(endpoint);
+  const { store, update, destroy, show } = useApi(endpoint);
 
   const toggleCollapsed = () => {
     setCollapsed(!collapsed);
@@ -50,6 +57,70 @@ const Dashboard = () => {
   useEffect(() => {
     getUser();
   }, []);
+
+  // Fetch data with pagination
+  const fetchData = async (page = 1, size = 10) => {
+    if (!endpoint) return;
+    
+    setLoading(true);
+    try {
+      const response = await axios.get(`${endpoint}?page=${page}&per_page=${size}`);
+      
+      if (response.data.data) {
+        const responseData = response.data.data;
+        
+        // Handle paginated response
+        if (responseData.data && Array.isArray(responseData.data)) {
+          setItems(responseData.data);
+          setPagination({
+            current_page: responseData.current_page,
+            total: responseData.total,
+            per_page: responseData.per_page,
+            from: responseData.from,
+            to: responseData.to,
+            last_page: responseData.last_page
+          });
+        } 
+        // Handle direct array response (for non-paginated endpoints)
+        else if (Array.isArray(responseData)) {
+          setItems(responseData);
+          setPagination(null);
+        }
+        // Handle single object response
+        else {
+          setItems([responseData]);
+          setPagination(null);
+        }
+      } else {
+        setItems([]);
+        setPagination(null);
+      }
+    } catch (error) {
+      console.error('Failed to fetch data:', error);
+      setItems([]);
+      setPagination(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle page change
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
+  // Handle page size change
+  const handlePageSizeChange = (size, page = 1) => {
+    setPageSize(size);
+    setCurrentPage(page);
+  };
+
+  // Fetch data when page, pageSize, or endpoint changes
+  useEffect(() => {
+    if (endpoint) {
+      fetchData(currentPage, pageSize);
+    }
+  }, [endpoint, currentPage, pageSize]);
 
   const getQuestionTypeOptions = async () => {
     try {
@@ -75,6 +146,13 @@ const Dashboard = () => {
 
   useEffect(() => {
     const activeKey = selectedKeys[0];
+    
+    // Reset pagination when switching sections
+    setCurrentPage(1);
+    setPageSize(10);
+    setPagination(null);
+    setItems([]);
+    
     switch (activeKey) {
       case "students":
         setEndpoint("/students");
@@ -110,17 +188,6 @@ const Dashboard = () => {
     }
   }, [selectedKeys]);
 
-  useEffect(() => {
-    if (endpoint) {
-      console.log('Dashboard - Calling index() for endpoint:', endpoint);
-      index().then(() => {
-        console.log('Dashboard - index() completed, items:', items);
-      }).catch((error) => {
-        console.error('Dashboard - index() error:', error);
-      });
-    }
-  }, [endpoint]);
-
   // Menu items configuration
   const menuItems = [
     {
@@ -143,18 +210,6 @@ const Dashboard = () => {
       icon: <BarChartOutlined />,
       label: 'Quiz Scores',
     },
-    // {
-    //   key: 'settings',
-    //   icon: <SettingOutlined />,
-    //   label: 'Settings',
-    //   children: [
-    //     {
-    //       key: 'question-types',
-    //       icon: <QuestionCircleOutlined />,
-    //       label: 'Question Types',
-    //     },
-    //   ],
-    // },
     {
       key: 'logout',
       icon: <LogoutOutlined />,
@@ -225,15 +280,6 @@ const Dashboard = () => {
             required: true
           },
           { name: 'time_limit', label: 'Time Limit (minutes)', type: 'number' },
-          // {
-          //   name: 'is_active',
-          //   label: 'Active?',
-          //   type: 'select',
-          //   options: [
-          //     { value: 1, label: 'Yes' },
-          //     { value: 0, label: 'No' }
-          //   ]
-          // },
         ];
 
       case 'quiz-scores':
@@ -335,7 +381,7 @@ const Dashboard = () => {
       if (selectedKeys[0] === 'quizzes' && createData.questions) {
         createData.questions = createData.questions.map((question) => ({
           question_text: question.question_text,
-          question_type_id: question.question_type_id, // updated field
+          question_type_id: question.question_type_id,
           points: parseInt(question.points) || 1,
           choices: question.choices?.map((choice) => ({
             choice_text: choice.choice_text,
@@ -345,7 +391,8 @@ const Dashboard = () => {
       }
 
       await store(createData);
-      await index();
+      // Refresh current page after creation
+      await fetchData(currentPage, pageSize);
     } catch (error) {
       console.error('Create error:', error);
       throw error;
@@ -360,7 +407,6 @@ const Dashboard = () => {
       let id;
 
       if (formData instanceof FormData) {
-        // Handle FormData (with file uploads) - Laravel format
         id = formData.get('id');
         console.log('ID from FormData:', id);
 
@@ -368,21 +414,16 @@ const Dashboard = () => {
           throw new Error('ID is required for update operation');
         }
 
-        // For Laravel FormData with array notation, we can send it directly
-        // Laravel will automatically parse questions[0][photo], questions[0][question_text], etc.
         console.log('Sending FormData directly to Laravel with array notation');
 
-        // Log FormData contents for debugging
         console.log('=== FormData being sent to API ===');
         for (let [key, value] of formData.entries()) {
           console.log(`${key}:`, value instanceof File ? `[File: ${value.name}]` : value);
         }
 
-        // Send FormData directly - Laravel will handle the array notation
         await update(id, formData);
 
       } else {
-        // Handle regular object
         id = formData.id;
 
         if (!id) {
@@ -398,7 +439,7 @@ const Dashboard = () => {
             question_text: question.question_text,
             question_type_id: question.question_type_id,
             points: parseInt(question.points) || 1,
-            photo: question.photo || null, // Include photo path
+            photo: question.photo || null,
             choices: question.choices?.map((choice) => ({
               id: choice.id,
               choice_text: choice.choice_text,
@@ -411,7 +452,8 @@ const Dashboard = () => {
         await update(id, updateData);
       }
 
-      await index();
+      // Refresh current page after update
+      await fetchData(currentPage, pageSize);
     } catch (error) {
       console.error('Update error:', error);
       throw error;
@@ -425,7 +467,19 @@ const Dashboard = () => {
       }
 
       await destroy(record.id);
-      await index();
+      
+      // Calculate if we need to go to previous page after deletion
+      const newTotal = pagination ? pagination.total - 1 : items.length - 1;
+      const maxPage = Math.ceil(newTotal / pageSize);
+      const targetPage = currentPage > maxPage ? maxPage : currentPage;
+      
+      // Refresh appropriate page after deletion
+      await fetchData(targetPage || 1, pageSize);
+      
+      // Update current page if necessary
+      if (targetPage !== currentPage) {
+        setCurrentPage(targetPage || 1);
+      }
     } catch (error) {
       console.error('Delete error:', error);
       throw error;
@@ -502,6 +556,9 @@ const Dashboard = () => {
           showDelete={showDelete}
           authUser={authUser}
           questionTypeOptions={questionTypes}
+          pagination={pagination}
+          onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
         />
       );
     }
