@@ -279,7 +279,7 @@ const Dashboard = () => {
             ],
             required: true
           },
-          { name: 'time_limit', label: 'Time Limit (minutes)', type: 'number' },
+          // { name: 'time_limit', label: 'Time Limit (minutes)', type: 'number' },
         ];
 
       case 'quiz-scores':
@@ -319,7 +319,7 @@ const Dashboard = () => {
           { title: "Instructions", dataIndex: "instructions", key: "instructions" },
           { title: "Grade Level", dataIndex: "grade_level", key: "grade_level" },
           { title: "Difficulty", dataIndex: "difficulty", key: "difficulty" },
-          { title: "Time Limit", dataIndex: "time_limit", key: "time_limit" },
+          // { title: "Time Limit", dataIndex: "time_limit", key: "time_limit" },
           {
             title: "Active",
             dataIndex: "is_active",
