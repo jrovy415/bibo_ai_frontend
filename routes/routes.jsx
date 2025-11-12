@@ -1,4 +1,6 @@
 import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
+import HiClick from "../src/HiClick";
+import GameClick from "../src/GameClick";
 import Login from "../src/Login";
 import Dashboard from "../src/Dashboard";
 import StudentLayout from "../src/layouts/StudentLayout";
@@ -62,6 +64,14 @@ const AuthRedirect = ({ children }) => {
 const router = createBrowserRouter([
     {
         path: "/",
+        element: <HiClick />, // 👈 Show HiClick first when app loads
+    },
+    {
+        path: "/gameclick",
+        element: <GameClick />, // 👈 Then show GameClick
+    },
+    {
+        path: "/login",
         element: (
             <AuthRedirect>
                 <Login />
@@ -87,23 +97,15 @@ const router = createBrowserRouter([
             { path: "", element: <StudentDashboard /> },
             { path: "quiz", element: <StudentQuiz /> },
             { path: "finished-quiz", element: <StudentFinishedQuiz /> },
-            // { path: "weather", element: <Weather /> },
-            // { path: "intro_letters", element: <IntroLetters /> },
-            // { path: "letter_sp", element: <LetterSp /> },
-            // { path: "letters", element: <Letters /> },
-            // { path: "intro_food", element: <IntroFood /> },
-            // { path: "food_sp", element: <FoodSp /> },
-            // { path: "food_act", element: <FoodAct /> },
-            // { path: "intro_emo", element: <IntroEmo /> },
-            // { path: "emo_sp", element: <EmoSp /> },
-            // { path: "emo_act", element: <EmoAct /> },
             { path: "logout", element: <StudentLogout /> },
         ],
     },
     {
-        path: "/speech", element: <SpeechToText />
+        path: "/speech",
+        element: <SpeechToText />
     }
 ]);
+
 
 export default function Router() {
     return <RouterProvider router={router} />;

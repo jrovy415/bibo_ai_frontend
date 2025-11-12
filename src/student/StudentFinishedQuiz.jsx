@@ -3,6 +3,7 @@ import { Card, Progress, Table, Spin, message, Button } from "antd";
 import axios from "../../plugins/axios";
 import { useAuth } from "../../composables/useAuth";
 import { useLocation, useNavigate } from "react-router-dom";
+import "./StudentFinishedQuiz.css";
 
 const StudentFinishedQuiz = () => {
     const location = useLocation();
@@ -78,21 +79,23 @@ const StudentFinishedQuiz = () => {
 
     return (
         <div
-            style={{
-                width: "100vw",
-                minHeight: "100vh",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "flex-start",
-                padding: 30,
-                background: "#f0f8ff",
-                backgroundImage: "url('/3436801_20252.jpg')",
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-                backgroundRepeat: "no-repeat",
-            }}
-        >
+    style={{
+    width: "100%",
+    minHeight: "100%",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "flex-start",
+    padding: 30,
+    background: "#f0f8ff",
+    backgroundImage: "url('/3436801_20252.jpg')",
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+    backgroundRepeat: "no-repeat",
+    }}
+>
+
+
             <h1 style={{ fontSize: "2.5rem", marginBottom: 20 }}>{quizData.title}</h1>
             <p style={{ fontSize: "1.2rem", marginBottom: 20 }}>
                 Grade Level: <b>{quizData.grade_level}</b> | Difficulty: <b>{quizData.difficulty}</b>

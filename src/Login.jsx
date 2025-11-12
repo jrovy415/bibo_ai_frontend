@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, {useState, useRef, useEffect} from 'react';
 import { useNavigate } from 'react-router-dom';
 import { speakText } from './ttsUtil';
 import { MdHeadset } from 'react-icons/md';
@@ -32,6 +32,39 @@ export default function Login() {
   // });
   const navigate = useNavigate();
   const hiButtonRef = useRef(null);
+const [isMusicPlaying, setIsMusicPlaying] = useState(true);
+const backgroundMusicRef = useRef(null);
+
+useEffect(() => {
+  const audio = new Audio("/child_friendly_music.mp3");
+  audio.loop = true;
+  audio.volume = 0.2; // soft background volume
+  backgroundMusicRef.current = audio;
+
+  // Try autoplay on mount
+  const playMusic = () => {
+    audio.play().catch(() => {
+      console.warn("Autoplay blocked. Will play after first user interaction.");
+      // Wait for user interaction (click, keypress, etc.)
+      const resumeAfterInteraction = () => {
+        audio.play();
+        document.removeEventListener("click", resumeAfterInteraction);
+        document.removeEventListener("keydown", resumeAfterInteraction);
+      };
+      document.addEventListener("click", resumeAfterInteraction);
+      document.addEventListener("keydown", resumeAfterInteraction);
+    });
+  };
+
+  playMusic();
+
+  return () => {
+    audio.pause();
+    audio.src = "";
+  };
+}, []);
+
+
 
   const { loading, login } = useAuth();
 
@@ -41,7 +74,7 @@ export default function Login() {
     // Removed animation effect for moving click and mouse images as unnecessary
   }, [isSecondSentenceSpeaking]);
 
-  const introFullText = "Hello! I'm OpenAI Whisper, a super cool speech recognition system that can listen and understand you. Let's have fun learning together!";
+  const introFullText = "Hello! I'm BiboAI, a super cool speech recognition system that can listen and understand you. Let's have fun learning together!";
 
   // Handle student form submission with basic validation
   const handleStudentSubmit = async (e) => {
@@ -100,35 +133,6 @@ export default function Login() {
     }
   }, [showIntroText]);
 
-  // Handle "Hi!" button click to speak intro text with word highlighting
-  const handleHiClick = () => {
-    speakText(introFullText, {
-      rate: 1.1,
-      pitch: 1.2,
-      onBoundary: (charIndex) => {
-        // Find the word index based on charIndex
-        let cumulativeLength = 0;
-        const words = introFullText.split(' ');
-        for (let i = 0; i < words.length; i++) {
-          cumulativeLength += words[i].length + 1; // +1 for space
-          if (charIndex < cumulativeLength) {
-            setHighlightedWordIndex(i);
-            break;
-          }
-        }
-      },
-      onEnd: () => {
-        setShowIntroText(false);
-        setHighlightedWordIndex(-1);
-      }
-    });
-    setShowIntroText(true);
-    // Ensure the box disappears after 10 seconds as a fallback
-    setTimeout(() => {
-      setShowIntroText(false);
-      setHighlightedWordIndex(-1);
-    }, 10000);
-  };
 
   // New texts for headphones box
   const headphonesTexts = [
@@ -189,22 +193,6 @@ export default function Login() {
     setCurrentStepWordIndex(-1);
   };
 
-  // Toggle headphones box visibility and trigger TTS
-  const handleGameClick = () => {
-    setShowHeadphonesBox((prev) => {
-      const newState = !prev;
-      if (!prev) {
-        // If box is being shown, start speaking texts
-        setTimeout(() => {
-          speakHeadphonesTexts();
-        }, 100); // slight delay to ensure box is rendered
-      } else {
-        // If box is being hidden, reset highlighting
-        setCurrentStepWordIndex(-1);
-      }
-      return newState;
-    });
-  };
 
   const backgroundStyle = {
     backgroundImage: "url('/3436801_20252.jpg')",
@@ -285,61 +273,56 @@ export default function Login() {
 
   return (
     <div
-      style={{
-        margin: 0,
-        width: '100vw',
-        height: '100vh',
-        backgroundImage: "url('/3436801_20252.jpg')",
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-        position: 'relative',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-      }}
-    >
-      <button
-        ref={hiButtonRef}
-        onClick={handleHiClick}
-        className="animate-wiggle"
-        style={{
-          position: 'absolute',
-          top: '10px',
-          left: '10px',
-          backgroundColor: '#ff6f61',
-          border: '3px solid #ff3b2f',
-          borderRadius: '20px',
-          color: 'white',
-          fontWeight: 'bold',
-          fontSize: '2.5rem',
-          fontFamily: "'Comic Sans MS', cursive, sans-serif",
-          cursor: 'pointer',
-          userSelect: 'none',
-          padding: '0.5rem 1.5rem',
-          boxShadow: '0 4px 8px rgba(255, 111, 97, 0.6)',
-          animationTimingFunction: 'ease-in-out',
-          transition: 'transform 0.2s ease-in-out',
-        }}
-        aria-label="Introduce OpenAI Whisper"
-      >
-        Hi!
-      </button>
-      <img
-        src="/game.png"
-        alt="Game"
-        className="animate-wiggle"
-        onClick={handleGameClick}
-        style={{
-          position: 'absolute',
-          top: '120px',
-          left: '10px',
-          width: '100px',
-          height: 'auto',
-          zIndex: 1001,
-          cursor: 'pointer',
-        }}
-      />
+  style={{
+    margin: 0,
+    width: '100vw',
+    height: '100vh',
+    position: 'relative',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  }}
+>
+  <div
+    style={{
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      background: 'linear-gradient(270deg, #ffecd2, #fcb69f, #a1c4fd, #c2e9fb, #fbc2eb, #a6c1ee)',
+      backgroundSize: '1200% 1200%',
+      animation: 'gradientShift 25s ease infinite',
+      zIndex: 0,
+      filter: 'brightness(1.05)',
+    }}
+  />
+
+<Button
+  onClick={() => {
+    if (isMusicPlaying) {
+      backgroundMusicRef.current.pause();
+    } else {
+      backgroundMusicRef.current.play();
+    }
+    setIsMusicPlaying(!isMusicPlaying);
+  }}
+  shape="round"
+  size="large"
+  style={{
+    position: "absolute",
+    bottom: "20px",
+    right: "20px",
+    backgroundColor: "#ffd166",
+    borderColor: "#ffb703",
+    color: "#333",
+    fontWeight: "bold",
+    boxShadow: "0 4px 10px rgba(0,0,0,0.2)",
+  }}
+>
+  {isMusicPlaying ? "🔇 Stop Music" : "🎵 Play Music"}
+</Button>
 
       {showIntroText && (
         <>
@@ -580,57 +563,96 @@ export default function Login() {
         }}
       >
         <div
-          style={{
-            display: 'flex',
-            width: '100%',
-            borderBottom: '1px solid #ccc',
-            borderRadius: '8px 8px 0 0',
-            backgroundColor: '#f1f1f1',
-          }}
-        >
-          <button
-            onClick={() => setActiveTab('Student')}
-            style={{
-              flex: 1,
-              padding: '0.75rem',
-              backgroundColor: activeTab === 'Student' ? 'white' : 'transparent',
-              border: 'none',
-              borderBottom: activeTab === 'Student' ? `3px solid ${activeColor}` : 'none',
-              borderRadius: '8px 8px 0 0',
-              cursor: 'pointer',
-              fontWeight: 'bold',
-              color: activeTab === 'Student' ? activeColor : 'black',
-            }}
-          >
-            Student
-          </button>
-          <button
-            onClick={() => setActiveTab('Teacher')}
-            style={{
-              flex: 1,
-              padding: '0.75rem',
-              backgroundColor: activeTab === 'Teacher' ? 'white' : 'transparent',
-              border: 'none',
-              borderBottom: activeTab === 'Teacher' ? `3px solid ${activeColor}` : 'none',
-              borderRadius: '8px 8px 0 0',
-              cursor: 'pointer',
-              fontWeight: 'bold',
-              color: activeTab === 'Teacher' ? activeColor : 'black',
-            }}
-          >
-            Teacher
-          </button>
-        </div>
-
+  style={{
+    display: 'flex',
+    width: '100%',
+    borderBottom: '1px solid #ccc',
+    borderRadius: '8px 8px 0 0',
+    backgroundColor: '#f8f9fa',
+    position: 'relative',
+    overflow: 'hidden',
+  }}
+>
+  {['Student', 'Teacher'].map((tab) => (
+    <button
+      key={tab}
+      onClick={() => setActiveTab(tab)}
+      style={{
+        flex: 1,
+        padding: '0.75rem 1rem',
+        backgroundColor: activeTab === tab ? 'white' : 'transparent',
+        border: 'none',
+        position: 'relative',
+        cursor: 'pointer',
+        fontWeight: '600',
+        fontSize: '1rem',
+        transition: 'all 0.3s ease',
+        color: activeTab === tab ? activeColor : '#444',
+        borderRadius: '8px 8px 0 0',
+        boxShadow:
+          activeTab === tab
+            ? '0 -2px 6px rgba(0, 0, 0, 0.1)'
+            : 'inset 0 0 0 rgba(0,0,0,0)',
+        transform: activeTab === tab ? 'translateY(-2px)' : 'translateY(0)',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.backgroundColor = '#fff9';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.backgroundColor =
+          activeTab === tab ? 'white' : 'transparent';
+      }}
+    >
+      {tab}
+      {activeTab === tab && (
         <div
           style={{
-            width: '100%',
-            backgroundColor: 'white',
-            padding: '2rem',
-            borderRadius: '0 0 8px 8px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            position: 'absolute',
+            bottom: 0,
+            left: '25%',
+            width: '50%',
+            height: '3px',
+            backgroundColor: activeColor,
+            borderRadius: '4px',
+            animation: 'slide-in 0.3s ease, bounce 0.4s ease-out',
           }}
-        >
+        />
+      )}
+    </button>
+  ))}
+
+  {/* Keyframe animations */}
+  <style>
+    {`
+      @keyframes slide-in {
+        from { width: 0; left: 50%; opacity: 0.5; }
+        to { width: 50%; left: 25%; opacity: 1; }
+      }
+      @keyframes bounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-3px); }
+      }
+    `}
+  </style>
+</div>
+
+
+        <div
+    style={{
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      background: "linear-gradient(135deg, rgba(173, 216, 230, 0.7), rgba(230, 230, 250, 0.7))",
+      padding: "2rem",
+      borderRadius: "20px",
+      boxShadow: "0 8px 25px rgba(0,0,0,0.2)",
+      backdropFilter: "blur(8px)",
+      width: "100%",
+      position: "relative",
+      overflow: "hidden",
+    }}
+  >
+    
           {activeTab === 'Student' && (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               <label htmlFor="nickname" style={{ marginBottom: '0.5rem', fontWeight: 'bold', textAlign: 'center', width: '100%' }}>
@@ -645,120 +667,384 @@ export default function Login() {
                 style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc', marginBottom: '1rem', textAlign: 'center', width: '100%' }}
               />
               {studentError && <p style={{ color: 'red', marginBottom: '1rem' }}>{studentError}</p>}
-              <div style={{ marginBottom: '1rem', width: '100%', textAlign: 'center' }}>
-                <label style={{ marginRight: '1rem', fontWeight: 'bold' }}>Grade Level:</label>
-                {['Kinder', 'Grade 1'].map((grade) => (
-                  <label key={grade} style={{ marginRight: '1rem', textTransform: 'capitalize' }}>
-                    <input
-                      type="radio"
-                      name="gradeLevel"
-                      value={grade}
-                      checked={gradeLevel === grade}
-                      onChange={(e) => setGradeLevel(e.target.value)}
-                      style={{ marginRight: '0.25rem' }}
-                    />
-                    {grade}
-                  </label>
-                ))}
-              </div>
-              <div style={{ marginBottom: '1rem', width: '100%', textAlign: 'center' }}>
-                <label style={{ marginRight: '1rem', fontWeight: 'bold' }}>Section:</label>
-                {['1', '2', '3', '4'].map((sec) => (
-                  <label key={sec} style={{ marginRight: '1rem' }}>
-                    <input
-                      type="radio"
-                      name="section"
-                      value={sec}
-                      checked={section === sec}
-                      onChange={(e) => setSection(e.target.value)}
-                      style={{ marginRight: '0.25rem' }}
-                    />
-                    {sec}
-                  </label>
-                ))}
-              </div>
-              <Button
-                type="primary"
-                style={{
-                  backgroundColor: "green",
-                  width: '100%',
-                }}
-                disabled={loading}
-                loading={loading}
-                onClick={handleStudentSubmit}
-              >
-                Login
-              </Button>
+              {/* 🌟 Grade Level Section */}
+<div style={{ marginBottom: '1.5rem', width: '100%', textAlign: 'center' }}>
+  <h3 style={{ color: '#38a169', fontWeight: 'bold', marginBottom: '0.75rem', fontSize: '1.3rem' }}>
+    🎓 Choose Your Grade Level
+  </h3>
+  <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+    {['Kinder', 'Grade 1'].map((grade) => {
+      const isActive = gradeLevel === grade;
+      return (
+        <button
+          key={grade}
+          onClick={() => setGradeLevel(grade)}
+          style={{
+            background: isActive
+              ? 'linear-gradient(135deg, #68d391, #38a169)'
+              : 'linear-gradient(135deg, #e2e8f0, #cbd5e0)',
+            color: isActive ? 'white' : '#333',
+            border: isActive ? '3px solid #48bb78' : '2px solid #a0aec0',
+            borderRadius: '15px',
+            padding: '0.75rem 1.5rem',
+            fontSize: '1.1rem',
+            fontWeight: 'bold',
+            cursor: 'pointer',
+            transition: 'all 0.25s ease',
+            boxShadow: isActive
+              ? '0 0 20px rgba(72, 187, 120, 0.6), 0 4px 12px rgba(0,0,0,0.2)'
+              : '0 2px 6px rgba(0,0,0,0.1)',
+            transform: isActive ? 'scale(1.05)' : 'scale(1)',
+            fontFamily: "'Garamond', cursive, sans-serif",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'scale(1.1) rotate(2deg)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = isActive ? 'scale(1.05)' : 'scale(1)';
+          }}
+          onMouseDown={(e) => {
+            e.currentTarget.style.transform = 'scale(0.95)';
+          }}
+          onMouseUp={(e) => {
+            e.currentTarget.style.transform = 'scale(1.1) rotate(2deg)';
+          }}
+        >
+          {grade}
+        </button>
+      );
+    })}
+  </div>
+</div>
+
+{/* 🏫 Section Picker */}
+<div style={{ marginBottom: '1.5rem', width: '100%', textAlign: 'center' }}>
+  <h3 style={{ color: '#3182ce', fontWeight: 'bold', marginBottom: '0.75rem', fontSize: '1.3rem' }}>
+    🏫 Pick Your Section
+  </h3>
+  <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+    {['1', '2', '3', '4'].map((sec) => {
+      const isActive = section === sec;
+      return (
+        <button
+          key={sec}
+          onClick={() => setSection(sec)}
+          style={{
+            background: isActive
+              ? 'linear-gradient(135deg, #63b3ed, #3182ce)'
+              : 'linear-gradient(135deg, #e2e8f0, #cbd5e0)',
+            color: isActive ? 'white' : '#333',
+            border: isActive ? '3px solid #4299e1' : '2px solid #a0aec0',
+            borderRadius: '15px',
+            padding: '0.75rem 1.5rem',
+            fontSize: '1.1rem',
+            fontWeight: 'bold',
+            cursor: 'pointer',
+            transition: 'all 0.25s ease',
+            boxShadow: isActive
+              ? '0 0 20px rgba(99, 179, 237, 0.6), 0 4px 12px rgba(0,0,0,0.2)'
+              : '0 2px 6px rgba(0,0,0,0.1)',
+            transform: isActive ? 'scale(1.05)' : 'scale(1)',
+            fontFamily: "'Garamond', cursive, sans-serif",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'scale(1.1) rotate(-2deg)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = isActive ? 'scale(1.05)' : 'scale(1)';
+          }}
+          onMouseDown={(e) => {
+            e.currentTarget.style.transform = 'scale(0.95)';
+          }}
+          onMouseUp={(e) => {
+            e.currentTarget.style.transform = 'scale(1.1) rotate(-2deg)';
+          }}
+        >
+          {sec}
+        </button>
+      );
+    })}
+  </div>
+</div>
+        {/* 🌟 Playful Log In Button */}
+<button
+  onClick={handleStudentSubmit}
+  style={{
+    background: 'linear-gradient(135deg, #f6ad55, #ed8936)',
+    color: 'white',
+    border: '3px solid #dd6b20',
+    borderRadius: '20px',
+    padding: '0.9rem 2.5rem',
+    fontSize: '1.3rem',
+    fontWeight: 'bold',
+    cursor: 'pointer',
+    transition: 'all 0.3s ease',
+    boxShadow:
+      '0 0 20px rgba(237, 137, 54, 0.7), 0 5px 15px rgba(0,0,0,0.2)',
+    fontFamily: "'Comic Sans MS', cursive, sans-serif",
+    letterSpacing: '0.5px',
+    marginTop: '1rem',
+  }}
+  onMouseEnter={(e) => {
+    e.currentTarget.style.transform = 'scale(1.1) rotate(2deg)';
+    e.currentTarget.style.boxShadow =
+      '0 0 30px rgba(237, 137, 54, 0.9), 0 5px 20px rgba(0,0,0,0.25)';
+  }}
+  onMouseLeave={(e) => {
+    e.currentTarget.style.transform = 'scale(1)';
+    e.currentTarget.style.boxShadow =
+      '0 0 20px rgba(237, 137, 54, 0.7), 0 5px 15px rgba(0,0,0,0.2)';
+  }}
+  onMouseDown={(e) => {
+    e.currentTarget.style.transform = 'scale(0.95)';
+    e.currentTarget.style.filter = 'brightness(0.9)';
+  }}
+  onMouseUp={(e) => {
+    e.currentTarget.style.transform = 'scale(1.1) rotate(2deg)';
+    e.currentTarget.style.filter = 'brightness(1)';
+  }}
+>
+  🚀 Log In
+</button>
             </div>
           )}
 
           {activeTab === 'Teacher' && (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <label htmlFor="username" style={{ marginBottom: '0.5rem', fontWeight: 'bold', textAlign: 'center', width: '100%' }}>
-                Username
-              </label>
-              <input
-                id="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-                style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc', marginBottom: '1rem', width: '100%' }}
-              />
-              <label htmlFor="password" style={{ marginBottom: '0.5rem', fontWeight: 'bold', textAlign: 'center', width: '100%' }}>
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc', marginBottom: '1rem', width: '100%' }}
-              />
-              <Button
-                type="primary"
-                style={{
-                  backgroundColor: "green",
-                  width: '100%',
-                }}
-                disabled={loading}
-                loading={loading}
-                onClick={handleTeacherSubmit}
-              >
-                Login
-              </Button>
-            </div>
-          )}
+  <div
+    style={{
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      background: "linear-gradient(135deg, rgba(173, 216, 230, 0.7), rgba(230, 230, 250, 0.7))",
+      padding: "2rem",
+      borderRadius: "20px",
+      boxShadow: "0 8px 25px rgba(0,0,0,0.2)",
+      backdropFilter: "blur(8px)",
+      width: "100%",
+      position: "relative",
+      overflow: "hidden",
+    }}
+  >
+    <h2
+      style={{
+        fontFamily: "'Comic Sans MS', cursive, sans-serif",
+        color: "#5a67d8",
+        fontWeight: "bold",
+        fontSize: "1.8rem",
+        textAlign: "center",
+        marginBottom: "1.5rem",
+        letterSpacing: "1px",
+      }}
+    >
+      👩‍🏫 Welcome, Teacher!
+    </h2>
+
+    <div
+      style={{
+        width: "100%",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: "1rem",
+      }}
+    >
+      <div style={{ width: "100%", textAlign: "center" }}>
+        <label
+          htmlFor="username"
+          style={{
+            fontWeight: "bold",
+            color: "#333",
+            fontSize: "1.1rem",
+            display: "block",
+            marginBottom: "0.3rem",
+          }}
+        >
+          👤 Username
+        </label>
+        <input
+          id="username"
+          type="text"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          required
+          style={{
+            padding: "0.8rem",
+            borderRadius: "12px",
+            border: "2px solid #b794f4",
+            width: "100%",
+            textAlign: "center",
+            fontSize: "1rem",
+            outline: "none",
+            boxShadow: "inset 0 2px 5px rgba(0,0,0,0.1)",
+            transition: "0.3s all ease",
+          }}
+          onFocus={(e) =>
+            (e.target.style.border = "2px solid #805ad5")
+          }
+          onBlur={(e) =>
+            (e.target.style.border = "2px solid #b794f4")
+          }
+        />
+      </div>
+
+      <div style={{ width: "100%", textAlign: "center" }}>
+        <label
+          htmlFor="password"
+          style={{
+            fontWeight: "bold",
+            color: "#333",
+            fontSize: "1.1rem",
+            display: "block",
+            marginBottom: "0.3rem",
+          }}
+        >
+          🔒 Password
+        </label>
+        <input
+          id="password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          style={{
+            padding: "0.8rem",
+            borderRadius: "12px",
+            border: "2px solid #b794f4",
+            width: "100%",
+            textAlign: "center",
+            fontSize: "1rem",
+            outline: "none",
+            boxShadow: "inset 0 2px 5px rgba(0,0,0,0.1)",
+            transition: "0.3s all ease",
+          }}
+          onFocus={(e) =>
+            (e.target.style.border = "2px solid #805ad5")
+          }
+          onBlur={(e) =>
+            (e.target.style.border = "2px solid #b794f4")
+          }
+        />
+      </div>
+
+      <button
+        onClick={handleTeacherSubmit}
+        disabled={loading}
+        style={{
+          marginTop: "1.5rem",
+          background:
+            "linear-gradient(135deg, #7f9cf5, #805ad5, #9f7aea)",
+          border: "none",
+          color: "white",
+          fontSize: "1.3rem",
+          fontWeight: "bold",
+          padding: "0.9rem 2.5rem",
+          borderRadius: "25px",
+          boxShadow:
+            "0 0 25px rgba(128, 90, 213, 0.6), 0 6px 15px rgba(0,0,0,0.2)",
+          cursor: "pointer",
+          fontFamily: "'Comic Sans MS', cursive, sans-serif",
+          transition: "all 0.3s ease",
+          transform: loading ? "scale(0.95)" : "scale(1)",
+          position: "relative",
+          overflow: "hidden",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = "scale(1.1)";
+          e.currentTarget.style.boxShadow =
+            "0 0 35px rgba(159, 122, 234, 0.9), 0 6px 20px rgba(0,0,0,0.25)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = "scale(1)";
+          e.currentTarget.style.boxShadow =
+            "0 0 25px rgba(128, 90, 213, 0.6), 0 6px 15px rgba(0,0,0,0.2)";
+        }}
+      >
+        {loading ? "⏳ Logging In..." : "🚀 Log In"}
+      </button>
+    </div>
+
+    {/* Background floating shapes */}
+    <div
+      style={{
+        position: "absolute",
+        top: "-30px",
+        left: "-30px",
+        width: "100px",
+        height: "100px",
+        borderRadius: "50%",
+        background: "rgba(128, 90, 213, 0.3)",
+        animation: "floaty 5s ease-in-out infinite",
+        zIndex: 0,
+      }}
+    />
+    <div
+      style={{
+        position: "absolute",
+        bottom: "-40px",
+        right: "-40px",
+        width: "120px",
+        height: "120px",
+        borderRadius: "50%",
+        background: "rgba(159, 122, 234, 0.25)",
+        animation: "floaty 7s ease-in-out infinite reverse",
+        zIndex: 0,
+      }}
+    />
+
+    <style>
+      {`
+      @keyframes floaty {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-20px); }
+      }
+      `}
+    </style>
+  </div>
+)}
+
         </div>
       </div>
       <style>
-        {`
-          @keyframes bounce {
-            0%, 100% {
-              transform: translateY(0);
-            }
-            50% {
-              transform: translateY(-15px);
-            }
-          }
-          @keyframes wiggle {
-            0% { transform: rotate(0deg); }
-            15% { transform: rotate(15deg); }
-            30% { transform: rotate(-15deg); }
-            45% { transform: rotate(15deg); }
-            60% { transform: rotate(-15deg); }
-            75% { transform: rotate(15deg); }
-            100% { transform: rotate(0deg); }
-          }
-          .animate-bounce {
-            animation: bounce 1s ease-in-out;
-          }
-          .animate-wiggle {
-            animation: wiggle 1s ease-in-out infinite;
-          }
-        `}
-      </style>
+{`
+  @keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  @keyframes bounce {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-15px);
+    }
+  }
+
+  @keyframes wiggle {
+    0% { transform: rotate(0deg); }
+    15% { transform: rotate(15deg); }
+    30% { transform: rotate(-15deg); }
+    45% { transform: rotate(15deg); }
+    60% { transform: rotate(-15deg); }
+    75% { transform: rotate(15deg); }
+    100% { transform: rotate(0deg); }
+  }
+
+  .animate-bounce {
+    animation: bounce 1s ease-in-out;
+  }
+
+  .animate-wiggle {
+    animation: wiggle 1s ease-in-out infinite;
+  }
+`}
+</style>
+
+
+
     </div >
+
+
   );
 }

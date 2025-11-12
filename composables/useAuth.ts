@@ -27,7 +27,7 @@ export const useAuth = () => {
     } catch (e) {
       console.error(e);
     } finally {
-      navigate("/");
+      navigate("/login");
     }
   }
 
