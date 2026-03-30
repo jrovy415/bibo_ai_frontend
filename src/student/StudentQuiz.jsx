@@ -1,10 +1,282 @@
-import { useEffect, useRef, useState } from "react";
-import { Button, Card, Progress, Spin, message } from "antd";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { Spin } from "antd";
 import { AudioOutlined, SoundOutlined, PauseOutlined } from "@ant-design/icons";
 import axios, { nonApi } from "../../plugins/axios";
 import { useAuth } from "../../composables/useAuth";
 import { useNavigate } from "react-router-dom";
 import QuizMaterial from "../components/QuizMaterial";
+import bgAudio from "../../plugins/bgAudio";
+
+const GlobalStyles = () => (
+    <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&display=swap');
+
+        * { box-sizing: border-box; }
+
+        body { margin: 0; padding: 0; font-family: 'Nunito', sans-serif; }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(-2deg); }
+            50%       { transform: translateY(-18px) rotate(2deg); }
+        }
+        @keyframes floatB {
+            0%, 100% { transform: translateY(0px) rotate(3deg); }
+            50%       { transform: translateY(-12px) rotate(-3deg); }
+        }
+        @keyframes bounce {
+            0%, 100% { transform: scale(1); }
+            50%       { transform: scale(1.08); }
+        }
+        @keyframes wiggle {
+            0%, 100% { transform: rotate(-4deg); }
+            50%       { transform: rotate(4deg); }
+        }
+        @keyframes pop {
+            0%   { transform: scale(0) rotate(-10deg); opacity: 0; }
+            70%  { transform: scale(1.15) rotate(3deg); opacity: 1; }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+        @keyframes starSpin {
+            from { transform: rotate(0deg) scale(1); }
+            to   { transform: rotate(360deg) scale(1.2); }
+        }
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(255,200,0,0.7); }
+            50%       { box-shadow: 0 0 0 18px rgba(255,200,0,0); }
+        }
+        @keyframes listeningRing {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(255,80,80,0.6); }
+            50%       { box-shadow: 0 0 0 20px rgba(255,80,80,0); }
+        }
+        @keyframes confettiFall {
+            0%   { transform: translateY(-10px) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+        }
+        @keyframes rainbowBg {
+            0%   { background-position: 0% 50%; }
+            50%  { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        @keyframes cloudDrift {
+            0%   { transform: translateX(-120px); opacity: 0; }
+            10%  { opacity: 0.8; }
+            90%  { opacity: 0.8; }
+            100% { transform: translateX(110vw); opacity: 0; }
+        }
+        @keyframes timerPulse {
+            0%, 100% { transform: scale(1); }
+            50%       { transform: scale(1.06); }
+        }
+        @keyframes timerShake {
+            0%, 100% { transform: translateX(0); }
+            20%       { transform: translateX(-4px); }
+            40%       { transform: translateX(4px); }
+            60%       { transform: translateX(-3px); }
+            80%       { transform: translateX(3px); }
+        }
+
+        .kid-btn {
+            font-family: 'Fredoka One', cursive !important;
+            font-size: 1.4rem !important;
+            border: none !important;
+            border-radius: 50px !important;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+            letter-spacing: 0.5px;
+        }
+        .kid-btn:not(:disabled):hover {
+            transform: scale(1.07) translateY(-2px) !important;
+        }
+        .kid-btn:not(:disabled):active {
+            transform: scale(0.95) !important;
+        }
+        .kid-btn:disabled {
+            opacity: 0.5 !important;
+            cursor: not-allowed !important;
+        }
+
+        .star-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px; height: 44px;
+            background: #FFD700;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+            animation: starSpin 3s linear infinite;
+        }
+
+        .question-card {
+            animation: pop 0.5s cubic-bezier(.17,.67,.35,1.3) both;
+        }
+
+        .listening-indicator {
+            animation: listeningRing 1s ease infinite;
+        }
+
+        .start-btn-glow {
+            animation: pulse 1.5s ease infinite;
+        }
+
+        .mascot-float {
+            animation: float 3s ease-in-out infinite;
+        }
+        .mascot-floatB {
+            animation: floatB 4s ease-in-out infinite;
+        }
+
+        .timer-urgent {
+            animation: timerShake 0.4s ease infinite;
+        }
+        .timer-warning {
+            animation: timerPulse 0.8s ease infinite;
+        }
+    `}</style>
+);
+
+const CONFETTI_COLORS = ["#FF6B6B","#FFD93D","#6BCB77","#4D96FF","#FF922B","#CC5DE8","#F06595"];
+const ConfettiBlast = () => {
+    const pieces = Array.from({ length: 30 }, (_, i) => ({
+        id: i,
+        left: Math.random() * 100,
+        color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+        size: 8 + Math.random() * 10,
+        delay: Math.random() * 1.5,
+        duration: 2.5 + Math.random() * 2,
+    }));
+    return (
+        <div style={{ position:"fixed", inset:0, pointerEvents:"none", zIndex:9999 }}>
+            {pieces.map(p => (
+                <div key={p.id} style={{
+                    position:"absolute",
+                    left: `${p.left}%`,
+                    top: 0,
+                    width: p.size,
+                    height: p.size,
+                    backgroundColor: p.color,
+                    borderRadius: Math.random() > 0.5 ? "50%" : "2px",
+                    animation: `confettiFall ${p.duration}s ${p.delay}s ease-in forwards`,
+                }} />
+            ))}
+        </div>
+    );
+};
+
+const Clouds = () => {
+    const clouds = [
+        { top:"8%",  size:80,  dur:22, delay:0   },
+        { top:"18%", size:110, dur:30, delay:8   },
+        { top:"55%", size:70,  dur:18, delay:4   },
+        { top:"72%", size:95,  dur:26, delay:14  },
+        { top:"35%", size:60,  dur:20, delay:10  },
+    ];
+    return (
+        <div style={{ position:"fixed", inset:0, pointerEvents:"none", overflow:"hidden", zIndex:0 }}>
+            {clouds.map((c, i) => (
+                <div key={i} style={{
+                    position:"absolute",
+                    top: c.top,
+                    left: 0,
+                    width: c.size,
+                    height: c.size * 0.6,
+                    background: "rgba(255,255,255,0.55)",
+                    borderRadius: "50%",
+                    animation: `cloudDrift ${c.dur}s ${c.delay}s linear infinite`,
+                    filter: "blur(4px)",
+                }} />
+            ))}
+        </div>
+    );
+};
+
+const Stars = () => {
+    const items = ["⭐","🌟","✨","💫","⭐","🌟","✨"];
+    return (
+        <div style={{ position:"fixed", inset:0, pointerEvents:"none", zIndex:0 }}>
+            {items.map((s, i) => (
+                <div key={i} style={{
+                    position:"absolute",
+                    top: `${10 + i * 12}%`,
+                    left: i % 2 === 0 ? `${3 + i * 2}%` : `${85 - i * 2}%`,
+                    fontSize: 22 + (i % 3) * 8,
+                    animation: `float ${3 + i * 0.4}s ease-in-out infinite`,
+                    animationDelay: `${i * 0.3}s`,
+                    opacity: 0.7,
+                }}>{s}</div>
+            ))}
+        </div>
+    );
+};
+
+const OwlMascot = ({ size = 80, style = {} }) => (
+    <div style={{ fontSize: size, lineHeight: 1, ...style }}>🦉</div>
+);
+const StarMascot = ({ size = 80, style = {} }) => (
+    <div style={{ fontSize: size, lineHeight: 1, ...style }}>🌟</div>
+);
+
+const ProgressStars = ({ current, total }) => (
+    <div style={{ display:"flex", gap:6, justifyContent:"center", flexWrap:"wrap", marginBottom:16 }}>
+        {Array.from({ length: total }).map((_, i) => (
+            <div key={i} style={{
+                fontSize: i < current ? 28 : 22,
+                filter: i < current ? "none" : "grayscale(1) opacity(0.4)",
+                transition: "all 0.3s ease",
+                transform: i === current - 1 ? "scale(1.3)" : "scale(1)",
+            }}>
+                {i < current ? "⭐" : "☆"}
+            </div>
+        ))}
+    </div>
+);
+
+// ── Timer display component ──────────────────────────────────────────────────
+const QuizTimer = ({ secondsLeft, totalSeconds }) => {
+    if (totalSeconds == null || totalSeconds <= 0) return null;
+
+    const mins = Math.floor(secondsLeft / 60);
+    const secs = secondsLeft % 60;
+    const display = `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+    const pct = secondsLeft / totalSeconds;
+
+    const isUrgent  = secondsLeft <= 10;
+    const isWarning = secondsLeft <= 30 && !isUrgent;
+
+    const bgColor  = isUrgent  ? "linear-gradient(135deg,#ff4444,#cc0000)"
+                   : isWarning ? "linear-gradient(135deg,#ff9f43,#ff6b6b)"
+                               : "linear-gradient(135deg,#56d364,#2ea043)";
+
+    const emoji = isUrgent ? "🚨" : isWarning ? "⏰" : "⏱️";
+
+    return (
+        <div
+            className={isUrgent ? "timer-urgent" : isWarning ? "timer-warning" : ""}
+            style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                background: bgColor,
+                color: "white",
+                borderRadius: 50,
+                padding: "10px 22px",
+                fontFamily: "'Fredoka One', cursive",
+                fontSize: "1.5rem",
+                boxShadow: isUrgent
+                    ? "0 0 0 4px rgba(255,68,68,0.4), 0 4px 16px rgba(255,68,68,0.5)"
+                    : "0 4px 16px rgba(0,0,0,0.2)",
+                letterSpacing: 1,
+                minWidth: 130,
+                justifyContent: "center",
+                transition: "background 0.5s ease",
+                userSelect: "none",
+            }}
+        >
+            <span style={{ fontSize: "1.2rem" }}>{emoji}</span>
+            {display}
+        </div>
+    );
+};
 
 const StudentQuiz = () => {
     const [quiz, setQuiz] = useState(null);
@@ -17,200 +289,82 @@ const StudentQuiz = () => {
     const [answers, setAnswers] = useState({});
     const [buttonDisabled, setButtonDisabled] = useState(false);
     const [startDisabled, setStartDisabled] = useState(true);
+    const [showConfetti, setShowConfetti] = useState(false);
 
-    const [attemptId, setAttemptId] = useState(null); // store QuizAttempt ID
+    const [attemptId, setAttemptId] = useState(null);
     const [showMaterials, setShowMaterials] = useState(false);
 
-    // TTS state
     const [isSpeaking, setIsSpeaking] = useState(true);
     const [ttsEnabled, setTtsEnabled] = useState(true);
     const [friendlyVoice, setFriendlyVoice] = useState(null);
 
+    // ── Timer state ──────────────────────────────────────────────────────────
+    const [timeLeft, setTimeLeft]   = useState(null); // seconds remaining
+    const [totalTime, setTotalTime] = useState(null); // original total seconds
+    const timerRef = useRef(null);
+
     const recognitionRef = useRef(null);
-    const backgroundAudioRef = useRef(null);
+    const finishCalledRef = useRef(false); // guard against double-finish
 
     const { authUser, getUser } = useAuth();
-
     const navigate = useNavigate();
 
-    // Load Zira voice with mobile-friendly fallbacks
+    // ── Load voice ──────────────────────────────────────────────────────────
     useEffect(() => {
         const loadVoice = () => {
             const voices = window.speechSynthesis.getVoices();
-
-            if (voices.length === 0) return; // Wait for voices to load
-
-            // Find Microsoft Zira voice specifically (Windows)
-            const zira = voices.find(voice =>
-                voice.name.toLowerCase().includes('zira')
-            );
-
-            if (zira) {
-                setFriendlyVoice(zira);
-                console.log("Zira voice found:", zira.name);
-                return;
+            if (voices.length === 0) return;
+            const zira = voices.find(v => v.name.toLowerCase().includes('zira'));
+            if (zira) { setFriendlyVoice(zira); return; }
+            const isMobile = /Android|webOS|iPhone|iPad|iPod/i.test(navigator.userAgent);
+            const mobileFallbacks = isMobile
+                ? ['Samantha','Karen','Tessa','Veena','Moira','Alex']
+                : [];
+            for (const name of mobileFallbacks) {
+                const v = voices.find(v => v.name.toLowerCase().includes(name.toLowerCase()));
+                if (v) { setFriendlyVoice(v); return; }
             }
-
-            // Mobile-specific fallbacks
-            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
-            if (isMobile) {
-                // iOS fallbacks (in order of preference)
-                const iosVoices = [
-                    'Samantha',           // iOS English female voice
-                    'Karen',              // iOS Australian English
-                    'Tessa',              // iOS South African English
-                    'Veena',              // iOS Indian English
-                    'Moira',              // iOS Irish English
-                    'Alex'                // iOS default male (as last resort)
-                ];
-
-                // Android fallbacks (in order of preference)
-                const androidVoices = [
-                    'en-us-x-sfg#female_1-local',  // Google TTS female
-                    'en-us-x-sfg#female_2-local',  // Google TTS female alt
-                    'en-gb-x-gba#female_1-local',  // Google TTS British female
-                    'en-au-x-aua#female_1-local',  // Google TTS Australian female
-                    'Google US English Female',     // Older Google TTS naming
-                    'Google UK English Female',     // Older Google TTS naming
-                ];
-
-                const mobileFallbacks = navigator.userAgent.includes('iPhone') || navigator.userAgent.includes('iPad')
-                    ? iosVoices
-                    : androidVoices;
-
-                // Try to find mobile-specific voices first
-                for (const voiceName of mobileFallbacks) {
-                    const mobileVoice = voices.find(voice =>
-                        voice.name.includes(voiceName) ||
-                        voice.name.toLowerCase().includes(voiceName.toLowerCase())
-                    );
-                    if (mobileVoice) {
-                        setFriendlyVoice(mobileVoice);
-                        console.log("Mobile voice found:", mobileVoice.name);
-                        return;
-                    }
-                }
-            }
-
-            // General fallbacks for desktop and mobile (if specific mobile voices not found)
             const generalFallbacks = [
-                // Child-friendly names
-                'Karen', 'Samantha', 'Alice', 'Susan', 'Victoria', 'Allison',
-                // Generic patterns
-                voice => voice.name.toLowerCase().includes('female') && voice.lang.startsWith('en'),
-                voice => voice.name.toLowerCase().includes('woman') && voice.lang.startsWith('en'),
-                // Default English voices
-                voice => voice.lang.startsWith('en-US') && voice.name.includes('Female'),
-                voice => voice.lang.startsWith('en-GB') && voice.name.includes('Female'),
-                voice => voice.lang.startsWith('en') && !voice.name.toLowerCase().includes('male'),
-                // Last resort - any English voice
-                voice => voice.lang.startsWith('en')
+                'Karen','Samantha','Alice','Susan','Victoria','Allison',
+                v => v.name.toLowerCase().includes('female') && v.lang.startsWith('en'),
+                v => v.lang.startsWith('en-US'),
+                v => v.lang.startsWith('en'),
             ];
-
-            for (const fallback of generalFallbacks) {
-                let foundVoice;
-
-                if (typeof fallback === 'string') {
-                    foundVoice = voices.find(voice =>
-                        voice.name.toLowerCase().includes(fallback.toLowerCase())
-                    );
-                } else if (typeof fallback === 'function') {
-                    foundVoice = voices.find(fallback);
-                }
-
-                if (foundVoice) {
-                    setFriendlyVoice(foundVoice);
-                    console.log("Fallback voice found:", foundVoice.name);
-                    return;
-                }
+            for (const fb of generalFallbacks) {
+                const v = typeof fb === 'string'
+                    ? voices.find(v => v.name.toLowerCase().includes(fb.toLowerCase()))
+                    : voices.find(fb);
+                if (v) { setFriendlyVoice(v); return; }
             }
-
-            // Absolute last resort - use the first available voice
-            if (voices.length > 0) {
-                setFriendlyVoice(voices[0]);
-                console.log("Default voice used:", voices[0].name);
-            }
+            if (voices.length > 0) setFriendlyVoice(voices[0]);
         };
-
-        // Load voices immediately if available
         loadVoice();
-
-        // Also load when voices change (some browsers load voices asynchronously)
-        const handleVoicesChanged = () => {
-            // Add a small delay to ensure voices are fully loaded
-            setTimeout(loadVoice, 100);
-        };
-
-        window.speechSynthesis.onvoiceschanged = handleVoicesChanged;
-
-        return () => {
-            window.speechSynthesis.onvoiceschanged = null;
-        };
+        window.speechSynthesis.onvoiceschanged = () => setTimeout(loadVoice, 100);
+        return () => { window.speechSynthesis.onvoiceschanged = null; };
     }, []);
 
-    // TTS Functions
+    // ── TTS helpers ─────────────────────────────────────────────────────────
     const speak = (text, callback) => {
         if (!ttsEnabled || !text) return;
-
-        // Cancel any ongoing speech
         window.speechSynthesis.cancel();
-
-        const utterance = new SpeechSynthesisUtterance(text);
-
-        // Child-friendly voice settings optimized for Zira
-        utterance.rate = 0.85;          // Slightly slower for better comprehension
-        utterance.pitch = 1.1;          // Higher pitch, more cheerful
-        utterance.volume = 0.9;         // Clear volume
-
-        // Use Zira voice if available
-        if (friendlyVoice) {
-            utterance.voice = friendlyVoice;
-        }
-
-        utterance.onstart = () => {
-            setIsSpeaking(true);
-        };
-
-        utterance.onend = () => {
-            setIsSpeaking(false);
-            if (callback) callback();
-        };
-
-        utterance.onerror = () => {
-            setIsSpeaking(false);
-            console.error("TTS error occurred");
-        };
-
-        window.speechSynthesis.speak(utterance);
+        const u = new SpeechSynthesisUtterance(text);
+        u.rate = 0.85; u.pitch = 1.15; u.volume = 0.9;
+        if (friendlyVoice) u.voice = friendlyVoice;
+        u.onstart = () => setIsSpeaking(true);
+        u.onend   = () => { setIsSpeaking(false); if (callback) callback(); };
+        u.onerror = () => setIsSpeaking(false);
+        window.speechSynthesis.speak(u);
     };
+    const stopSpeaking = () => { window.speechSynthesis.cancel(); setIsSpeaking(false); };
+    const toggleTTS = () => { if (isSpeaking) stopSpeaking(); setTtsEnabled(p => !p); };
 
-    const stopSpeaking = () => {
-        window.speechSynthesis.cancel();
-        setIsSpeaking(false);
-    };
-
-    const toggleTTS = () => {
-        if (isSpeaking) {
-            stopSpeaking();
-        }
-        setTtsEnabled(!ttsEnabled);
-    };
-
-    // // Fetch quiz
+    // ── Fetch quiz ──────────────────────────────────────────────────────────
     useEffect(() => {
         const fetchQuiz = async () => {
             try {
                 await getUser();
-
                 const res = await axios.get("/quizzes/get-quiz");
-
-                if (!res.data.data) {
-                    setQuiz(null);
-                    return;
-                }
-
-                setQuiz(res.data.data);
+                setQuiz(res.data.data || null);
             } catch (err) {
                 console.error(err);
                 navigate("/student");
@@ -218,106 +372,141 @@ const StudentQuiz = () => {
                 setLoading(false);
             }
         };
-
         fetchQuiz();
     }, []);
 
-    // TTS for quiz introduction (when quiz loads)
+    // ── Intro TTS ───────────────────────────────────────────────────────────
     useEffect(() => {
         if (quiz && !started && ttsEnabled && friendlyVoice) {
             stopSpeaking();
-
-            const introText = `Hello there! Welcome to ${quiz.title}. This is a ${quiz.difficulty} level quiz. Take your time and click the start quiz button when you're ready to begin. Good luck!`;
-            setTimeout(() => {
-                speak(introText, () => {
-                    setStartDisabled(false); // ✅ enable after TTS finishes
-                });
-            }, 1500);
+            const introText = `Hello there! Welcome to ${quiz.title}! This is a ${quiz.difficulty} level quiz. Take your time and press the big button when you are ready! You are going to do amazing!`;
+            setTimeout(() => speak(introText, () => setStartDisabled(false)), 1500);
         } else if (quiz && !started && !ttsEnabled) {
-            // ✅ if TTS is OFF, enable after short delay
             setTimeout(() => setStartDisabled(false), 1000);
         }
     }, [quiz, started, ttsEnabled, friendlyVoice]);
 
-    const questions = quiz?.questions || [];
+    const questions       = quiz?.questions || [];
     const currentQuestion = questions[currentIndex];
 
-    // TTS for current question (when question changes)
-    // useEffect(() => {
-    //     if (started && currentQuestion && ttsEnabled && friendlyVoice) {
-    //         const questionText = `Question ${currentIndex + 1} of ${questions.length}. ${currentQuestion.question_text}. Please speak your answer clearly.`;
-    //         setTimeout(() => {
-    //             speak(questionText);
-    //         }, 800); // Slightly longer delay
-    //     }
-    // }, [currentIndex, started, currentQuestion, ttsEnabled, friendlyVoice]);
-
-    // Speech recognition setup
+    // ── Speech recognition ──────────────────────────────────────────────────
     useEffect(() => {
         if (!started || !currentQuestion) return;
-
         if (!("webkitSpeechRecognition" in window) && !("SpeechRecognition" in window)) {
-            setRecStatus("error");
-            return;
+            setRecStatus("error"); return;
         }
-
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         const recognition = new SpeechRecognition();
-
         let captured = false;
-
         recognition.continuous = true;
         recognition.interimResults = true;
         recognition.lang = "en-US";
-
-        recognition.onstart = () => setRecStatus("listening");
-
+        recognition.onstart  = () => setRecStatus("listening");
         recognition.onresult = (event) => {
-            const lastIndex = event.results.length - 1;
-            const lastResult = event.results[lastIndex][0];
-            const isFinal = event.results[lastIndex].isFinal;
-            const transcriptText = lastResult.transcript.trim();
-
-            if (transcriptText) {
-                if (isFinal && !captured) {
-                    captured = true;
-                    setTranscript(transcriptText);
-                    recognition.stop();
-                    setRecStatus("idle");
-                }
+            const last = event.results[event.results.length - 1];
+            const text = last[0].transcript.trim();
+            if (text && last.isFinal && !captured) {
+                captured = true;
+                setTranscript(text);
+                recognition.stop();
+                setRecStatus("idle");
+                setShowConfetti(true);
+                setTimeout(() => setShowConfetti(false), 3000);
             }
         };
-
-        recognition.onerror = (e) => {
-            console.error("Recognition error:", e);
-            setRecStatus("error");
-        };
-
-        recognition.onend = () => {
-            if (!captured) {
-                setTimeout(() => recognition.start(), 500);
-            }
-        };
-
+        recognition.onerror = () => setRecStatus("error");
+        recognition.onend   = () => { if (!captured) setTimeout(() => recognition.start(), 500); };
         recognitionRef.current = recognition;
         setTranscript("");
-
-        return () => {
-            captured = true;
-            recognition.stop();
-        };
+        return () => { captured = true; recognition.stop(); };
     }, [currentIndex, started, currentQuestion]);
 
+    // ── Handle finish (wrapped in useCallback to use in timer) ───────────────
+    const handleFinish = useCallback(async (isTimedOut = false) => {
+        if (finishCalledRef.current) return;
+        finishCalledRef.current = true;
 
+        // Stop timer
+        if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+
+        if (bgAudio.instance) {
+            bgAudio.instance.pause();
+            bgAudio.instance.currentTime = 0;
+            bgAudio.instance = null;
+        }
+
+        stopSpeaking();
+        recognitionRef.current?.stop();
+        setButtonDisabled(false);
+        setShowConfetti(true);
+
+        const isHardLevel = quiz?.difficulty === 'Hard';
+
+        if (ttsEnabled) {
+            if (isTimedOut) {
+                speak("Time is up! Great effort! Check your grades on the dashboard!");
+            } else if (isHardLevel) {
+                speak("Fantastic! You finished the Hard level quiz! You are an absolute superstar! Check your grades on the dashboard!");
+            } else {
+                speak("Fantastic! You finished the quiz! You are a superstar! Well done!");
+            }
+        }
+
+        try {
+            await axios.patch(`/quiz-attempts/${attemptId}`);
+
+            if (isHardLevel) {
+                setTimeout(() => navigate("/student"), 2500);
+            } else {
+                navigate("/student/finished-quiz", { state: { attemptId, answers } });
+            }
+        } catch (err) {
+            console.error(err);
+            navigate("/student");
+        }
+    }, [attemptId, answers, quiz, ttsEnabled]);
+
+    // ── Countdown timer logic ────────────────────────────────────────────────
+    useEffect(() => {
+        if (!started) return;
+        // Clear any previous timer
+        if (timerRef.current) clearInterval(timerRef.current);
+
+        const limitMinutes = quiz?.time_limit;
+        if (!limitMinutes || limitMinutes <= 0) return; // no timer configured
+
+        const totalSecs = limitMinutes * 60;
+        setTotalTime(totalSecs);
+        setTimeLeft(totalSecs);
+
+        timerRef.current = setInterval(() => {
+            setTimeLeft(prev => {
+                if (prev <= 1) {
+                    clearInterval(timerRef.current);
+                    timerRef.current = null;
+                    // Save current answer then finish
+                    handleFinish(true);
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+
+        return () => {
+            if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+        };
+    }, [started]); // only run when quiz starts
+
+    // ── Start quiz ──────────────────────────────────────────────────────────
     const startQuiz = async () => {
         stopSpeaking();
+        finishCalledRef.current = false;
 
-        if (!backgroundAudioRef.current) {
-            const bgAudio = new Audio("/quiz-bg-music.mp3");
-            bgAudio.loop = true;
-            bgAudio.volume = 0.09;
-            bgAudio.play().catch(err => console.error("Failed to play background audio:", err));
-            backgroundAudioRef.current = bgAudio;
+        if (!bgAudio.instance) {
+            bgAudio.instance = new Audio("/quiz-bg-music.mp3");
+            bgAudio.instance.loop = true;
+            bgAudio.instance.volume = 0.09;
+            bgAudio.instance.play().catch(() => {});
         }
 
         setStarted(true);
@@ -328,386 +517,445 @@ const StudentQuiz = () => {
                 started_at: new Date().toISOString(),
                 score: 0,
             });
-
-            const attemptId = res.data.data.id;
-            setAttemptId(attemptId);
-
-            console.log("Attempt ID:", attemptId);
-
-            // TTS for intro
+            const id = res.data.data.id;
+            setAttemptId(id);
             if (ttsEnabled) {
-                const introText = "Great job! The quiz is starting! Read each statement slowly and carefully, and say your answer out loud when you’re ready. You can do it!";
-
-                speak(introText, () => {
-                    // Callback after TTS finishes
-                    if (currentQuestion) {
-                        recognitionRef.current?.start();
-                    }
+                speak("Yay! The quiz is starting! Read each question and say your answer out loud. You can do it, superstar!", () => {
+                    recognitionRef.current?.start();
                 });
             } else {
-                // If TTS disabled, start recognition immediately
                 recognitionRef.current?.start();
             }
         } catch (err) {
-            console.error("Failed to create quiz attempt:", err);
+            console.error(err);
         }
     };
 
-
+    // ── Save answer ─────────────────────────────────────────────────────────
     const saveAnswer = async () => {
         if (!currentQuestion || !attemptId) return;
-
-        const answerPayload = {
-            question_id: currentQuestion.id,
-            student_id: authUser?.id, // if using auth, add student ID here
-            attempt_id: attemptId,
-            choice_id: null, // for reading type, we only have transcript
-            transcript: transcript || "", // <-- send current transcript
-        };
-
-        // Save transcript locally for UI
-        setAnswers((prev) => ({
-            ...prev,
-            [currentQuestion.id]: transcript || "",
-        }));
-
+        setAnswers(prev => ({ ...prev, [currentQuestion.id]: transcript || "" }));
         try {
-            await axios.post("/answers", answerPayload);
+            await axios.post("/answers", {
+                question_id: currentQuestion.id,
+                student_id: authUser?.id,
+                attempt_id: attemptId,
+                choice_id: null,
+                transcript: transcript || "",
+            });
         } catch (err) {
-            console.error("Failed to save answer:", err);
+            console.error(err);
         }
     };
 
+    // ── Next / Finish ───────────────────────────────────────────────────────
     const handleNext = () => {
         setButtonDisabled(true);
-        stopSpeaking(); // Stop any ongoing speech
+        stopSpeaking();
         saveAnswer();
-
         if (currentIndex < questions.length - 1) {
-            setCurrentIndex((i) => i + 1);
+            setCurrentIndex(i => i + 1);
             setTranscript("");
-            setTimeout(() => {
-                recognitionRef.current?.start();
-                setButtonDisabled(false);
-            }, 500);
+            setTimeout(() => { recognitionRef.current?.start(); setButtonDisabled(false); }, 500);
         } else {
-            handleFinish();
+            handleFinish(false);
         }
     };
 
-    const handleFinish = async () => {
-        if (backgroundAudioRef.current) {
-            backgroundAudioRef.current.pause();      // stop playback
-            backgroundAudioRef.current.currentTime = 0; // reset to start
-            backgroundAudioRef.current = null;       // clear the ref
-        }
-
-        stopSpeaking(); // Stop any ongoing speech
-        recognitionRef.current?.stop();
-        console.log("Final answers:", answers);
-        message.success("Quiz finished! Answers captured.");
-        setButtonDisabled(false);
-
-        if (ttsEnabled) {
-            speak("Fantastic! You've completed the quiz! Well done, you did amazing!");
-        }
-
-        try {
-            await axios.patch(`/quiz-attempts/${attemptId}`);
-
-            navigate("/student/finished-quiz", { state: { attemptId, answers } });
-        } catch (err) {
-            console.error("Failed to finish attempt:", err);
-        }
+    // ── Shared BG style ─────────────────────────────────────────────────────
+    const bgStyle = {
+        background: "linear-gradient(135deg, #a8edea, #fed6e3, #ffecd2, #a8edea)",
+        backgroundSize: "400% 400%",
+        animation: "rainbowBg 10s ease infinite",
     };
 
+    // ── Loading ─────────────────────────────────────────────────────────────
     if (loading)
         return (
-            <div style={{ width: "100vw", height: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <Spin size="large" />
-            </div>
+            <>
+                <GlobalStyles />
+                <div style={{ width:"100vw", height:"100vh", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", ...bgStyle }}>
+                    <div style={{ fontSize: 80, animation:"bounce 0.8s ease infinite" }}>🦉</div>
+                    <Spin size="large" style={{ marginTop: 20 }} />
+                    <p style={{ fontFamily:"'Fredoka One', cursive", fontSize:"1.6rem", color:"#5b4e75", marginTop:16 }}>
+                        Loading your quiz…
+                    </p>
+                </div>
+            </>
         );
 
     if (!quiz)
-        return <p style={{ textAlign: "center", marginTop: 50, fontSize: "1.2rem" }}>No quiz found.</p>;
+        return (
+            <>
+                <GlobalStyles />
+                <div style={{ textAlign:"center", marginTop:80, fontFamily:"'Fredoka One', cursive", fontSize:"1.8rem", color:"#ff6b6b" }}>
+                    😕 No quiz found. Ask your teacher!
+                </div>
+            </>
+        );
 
+    // ═══════════════════════════════════════════
+    // INTRO SCREEN
+    // ═══════════════════════════════════════════
     if (!started)
         return (
             <>
+                <GlobalStyles />
+                {showConfetti && <ConfettiBlast />}
                 <QuizMaterial
                     visible={showMaterials}
                     onClose={() => setShowMaterials(false)}
                     material={quiz?.material && (quiz.material.title || quiz.material.content) ? quiz.material : null}
                 />
 
-                <div
-                    style={{
-                        width: "100vw",
-                        height: "100vh",
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        padding: 20,
-                        backgroundImage: "url('/3436801_20252.jpg')",
-                        backgroundSize: "cover",
-                        backgroundPosition: "center",
-                        backgroundRepeat: "no-repeat",
-                    }}
-                >
-                    {/* TTS Control Button with Voice Info */}
-                    <div style={{
-                        position: "absolute",
-                        top: 20,
-                        right: 20,
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "flex-end",
-                        gap: 8
-                    }}>
-                        <Button
+                <div style={{
+                    width:"100vw", minHeight:"100vh",
+                    display:"flex", flexDirection:"column",
+                    alignItems:"center", justifyContent:"center",
+                    padding:20, position:"relative", overflow:"hidden",
+                    ...bgStyle,
+                }}>
+                    <Clouds />
+                    <Stars />
+
+                    {/* TTS toggle */}
+                    <div style={{ position:"absolute", top:20, right:20, zIndex:10, display:"flex", flexDirection:"column", alignItems:"flex-end", gap:6 }}>
+                        <button
+                            className="kid-btn"
                             onClick={toggleTTS}
                             style={{
-                                backgroundColor: ttsEnabled ? "#52c41a" : "#ff4d4f",
-                                borderColor: ttsEnabled ? "#52c41a" : "#ff4d4f",
-                                color: "white",
-                                borderRadius: 8,
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 8,
+                                background: ttsEnabled ? "linear-gradient(135deg,#56d364,#2ea043)" : "linear-gradient(135deg,#ff6b6b,#ee1818)",
+                                color:"white", padding:"10px 20px",
+                                boxShadow:"0 4px 12px rgba(0,0,0,0.2)",
+                                display:"flex", alignItems:"center", gap:8,
+                                fontSize:"1rem",
                             }}
-                            icon={isSpeaking ? <PauseOutlined /> : <SoundOutlined />}
                         >
-                            {isSpeaking ? "Speaking..." : ttsEnabled ? "TTS ON" : "TTS OFF"}
-                        </Button>
+                            {isSpeaking ? <PauseOutlined /> : <SoundOutlined />}
+                            {isSpeaking ? "Speaking…" : ttsEnabled ? "🔊 Sound ON" : "🔇 Sound OFF"}
+                        </button>
                         {friendlyVoice && (
                             <span style={{
-                                fontSize: "11px",
-                                color: "white",
-                                backgroundColor: "rgba(0,0,0,0.6)",
-                                padding: "2px 6px",
-                                borderRadius: 4,
-                                textShadow: "none"
+                                fontSize:11, color:"#5b4e75",
+                                background:"rgba(255,255,255,0.8)",
+                                padding:"2px 8px", borderRadius:20,
+                                fontFamily:"'Nunito', sans-serif",
                             }}>
-                                Voice: {friendlyVoice.name}
+                                🎙 {friendlyVoice.name}
                             </span>
                         )}
                     </div>
 
-                    <div
-                        style={{
-                            padding: "40px 60px",
-                            border: "10px solid rgba(255, 127, 80, 0.6)", // semi-solid border
-                            borderRadius: 20,
-                            backgroundColor: "rgba(255, 255, 255, 0.9)", // optional subtle overlay
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "center",
-                            gap: 20,
-                        }}
-                    >
-                        <h1 style={{ fontSize: "2.5rem", marginBottom: 20 }}>{quiz.title}</h1>
-                        <p style={{ fontSize: "1.2rem", marginBottom: 40 }}>
-                            Difficulty: <b>{quiz.difficulty}</b>
-                        </p>
-                        <Button
-                            type="default"
-                            size="large"
+                    {/* Main card */}
+                    <div style={{
+                        position:"relative", zIndex:2,
+                        background:"rgba(255,255,255,0.92)",
+                        borderRadius:32, padding:"40px 50px",
+                        boxShadow:"0 12px 48px rgba(0,0,0,0.18), 0 0 0 6px rgba(255,179,71,0.5)",
+                        display:"flex", flexDirection:"column",
+                        alignItems:"center", gap:20,
+                        maxWidth:520, width:"100%",
+                        animation:"pop 0.5s cubic-bezier(.17,.67,.35,1.3) both",
+                    }}>
+                        <div style={{ position:"absolute", top:-50, left:-50 }}>
+                            <div className="mascot-float"><OwlMascot size={80} /></div>
+                        </div>
+                        <div style={{ position:"absolute", top:-40, right:-40 }}>
+                            <div className="mascot-floatB"><StarMascot size={64} /></div>
+                        </div>
+
+                        <h1 style={{
+                            fontFamily:"'Fredoka One', cursive", fontSize:"2.4rem",
+                            color:"#5b4e75", margin:0,
+                            textShadow:"2px 2px 0 rgba(255,179,71,0.4)", textAlign:"center",
+                        }}>
+                            {quiz.title} 🎉
+                        </h1>
+
+                        <div style={{
+                            background:"linear-gradient(135deg,#ffd93d,#ff6b6b)", color:"white",
+                            fontFamily:"'Fredoka One', cursive", fontSize:"1.1rem",
+                            padding:"8px 24px", borderRadius:50,
+                            boxShadow:"0 3px 10px rgba(0,0,0,0.15)",
+                        }}>
+                            ⚡ Level: {quiz.difficulty}
+                        </div>
+
+                        <div style={{
+                            display:"flex", gap:6, alignItems:"center",
+                            fontFamily:"'Nunito', sans-serif", fontWeight:700,
+                            fontSize:"1rem", color:"#5b4e75",
+                        }}>
+                            📋 {questions.length} Questions to answer
+                        </div>
+
+                        {/* Time limit badge — shown on intro if set */}
+                        {quiz.time_limit > 0 && (
+                            <div style={{
+                                display:"flex", alignItems:"center", gap:8,
+                                background:"linear-gradient(135deg,#e0f7fa,#b2ebf2)",
+                                border:"2px solid #4dd0e1",
+                                borderRadius:50, padding:"8px 22px",
+                                fontFamily:"'Fredoka One', cursive", fontSize:"1.1rem",
+                                color:"#006064",
+                                boxShadow:"0 3px 10px rgba(0,150,180,0.15)",
+                            }}>
+                                ⏱️ Time limit: {quiz.time_limit} minute{quiz.time_limit !== 1 ? "s" : ""}
+                            </div>
+                        )}
+
+                        <button
+                            className="kid-btn"
                             onClick={() => setShowMaterials(true)}
                             style={{
-                                backgroundColor: "#1890ff",
-                                borderColor: "#1890ff",
-                                border: "none",
-                                padding: "15px 40px",
-                                borderRadius: 12,
-                                fontSize: "1.2rem",
-                                color: "white",
+                                background:"linear-gradient(135deg,#4096ff,#1677ff)", color:"white",
+                                padding:"14px 36px",
+                                boxShadow:"0 6px 0 #1053a0, 0 8px 16px rgba(64,150,255,0.4)",
+                                width:"100%", fontSize:"1.2rem",
                             }}
                         >
-                            📘 View Materials
-                        </Button>
-                        <Button
-                            type="primary"
-                            size="large"
+                            📘 View Study Materials
+                        </button>
+
+                        <button
+                            className={`kid-btn ${!(isSpeaking || startDisabled) ? "start-btn-glow" : ""}`}
                             onClick={startQuiz}
-                            disabled={isSpeaking || startDisabled} // ✅ add startDisabled here
+                            disabled={isSpeaking || startDisabled}
                             style={{
-                                backgroundColor: (isSpeaking || startDisabled) ? "#ccc" : "#ff7f50",
-                                borderColor: (isSpeaking || startDisabled) ? "#ccc" : "#ff7f50",
-                                border: "none",
-                                padding: "15px 40px",
-                                borderRadius: 12,
-                                fontSize: "1.5rem",
-                                opacity: (isSpeaking || startDisabled) ? 0.6 : 1,
+                                background: (isSpeaking || startDisabled)
+                                    ? "linear-gradient(135deg,#ccc,#aaa)"
+                                    : "linear-gradient(135deg,#ff9f43,#ff6b6b)",
+                                color:"white", padding:"18px 48px",
+                                boxShadow: (isSpeaking || startDisabled)
+                                    ? "none"
+                                    : "0 8px 0 #c0392b, 0 12px 30px rgba(255,107,107,0.5)",
+                                width:"100%", fontSize:"1.6rem", marginTop:4,
                             }}
                         >
-                            {isSpeaking ? "🔊 Speaking..." : "🚀 Start Quiz"}
-                        </Button>
+                            {isSpeaking ? "🔊 Speaking…" : startDisabled ? "⏳ Getting ready…" : "🚀 START QUIZ!"}
+                        </button>
+                    </div>
+
+                    <div style={{ marginTop:30, fontSize:32, display:"flex", gap:12, zIndex:2, animation:"bounce 2s ease infinite" }}>
+                        🐱 🌈 🎮 ⭐ 🎯
                     </div>
                 </div>
             </>
         );
 
+    // ═══════════════════════════════════════════
+    // QUIZ SCREEN
+    // ═══════════════════════════════════════════
+    const isNextDisabled = recStatus === "listening" || (!transcript && recStatus === "idle") || isSpeaking || buttonDisabled;
+
     return (
         <>
+            <GlobalStyles />
+            {showConfetti && <ConfettiBlast />}
+
             <div style={{
-                width: "100vw",
-                height: "100vh",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: 20,
-                backgroundImage: "url('/3436801_20252.jpg')",
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-                backgroundRepeat: "no-repeat",
+                width:"100vw", minHeight:"100vh",
+                display:"flex", flexDirection:"column",
+                alignItems:"center", justifyContent:"center",
+                padding:"20px 16px", position:"relative", overflow:"hidden",
+                ...bgStyle,
             }}>
-                {/* TTS Control Button with Voice Info */}
+                <Clouds />
+                <Stars />
+
+                {/* Top bar: TTS toggle + Timer */}
                 <div style={{
-                    position: "absolute",
-                    top: 20,
-                    right: 20,
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "flex-end",
-                    gap: 8
+                    position:"absolute", top:16, left:0, right:0,
+                    padding:"0 16px", zIndex:10,
+                    display:"flex", alignItems:"center", justifyContent:"space-between",
                 }}>
-                    <Button
+                    {/* Timer — left side */}
+                    <div>
+                        {totalTime > 0 && timeLeft !== null && (
+                            <QuizTimer secondsLeft={timeLeft} totalSeconds={totalTime} />
+                        )}
+                    </div>
+
+                    {/* TTS toggle — right side */}
+                    <button
+                        className="kid-btn"
                         onClick={toggleTTS}
                         style={{
-                            backgroundColor: ttsEnabled ? "#52c41a" : "#ff4d4f",
-                            borderColor: ttsEnabled ? "#52c41a" : "#ff4d4f",
-                            color: "white",
-                            borderRadius: 8,
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 8,
+                            background: ttsEnabled ? "linear-gradient(135deg,#56d364,#2ea043)" : "linear-gradient(135deg,#ff6b6b,#ee1818)",
+                            color:"white", padding:"8px 16px",
+                            boxShadow:"0 4px 12px rgba(0,0,0,0.2)",
+                            display:"flex", alignItems:"center", gap:6,
+                            fontSize:"0.9rem",
                         }}
-                        icon={isSpeaking ? <PauseOutlined /> : <SoundOutlined />}
                     >
-                        {isSpeaking ? "Speaking..." : ttsEnabled ? "TTS ON" : "TTS OFF"}
-                    </Button>
-                    {friendlyVoice && (
-                        <span style={{
-                            fontSize: "11px",
-                            color: "white",
-                            backgroundColor: "rgba(0,0,0,0.6)",
-                            padding: "2px 6px",
-                            borderRadius: 4,
-                            textShadow: "none"
-                        }}>
-                            Voice: {friendlyVoice.name}
-                        </span>
-                    )}
+                        {isSpeaking ? <PauseOutlined /> : <SoundOutlined />}
+                        {isSpeaking ? "Speaking…" : ttsEnabled ? "🔊 ON" : "🔇 OFF"}
+                    </button>
                 </div>
 
-                <h1 style={{ fontSize: "2rem", marginBottom: 10 }}>{quiz.title}</h1>
-                <p style={{ fontSize: "1.2rem", marginBottom: 20 }}>
-                    Difficulty: <b>{quiz.difficulty}</b>
-                </p>
+                {/* Header */}
+                <div style={{ zIndex:2, textAlign:"center", marginBottom:8, marginTop: totalTime > 0 ? 60 : 0 }}>
+                    <h1 style={{
+                        fontFamily:"'Fredoka One', cursive", fontSize:"1.8rem",
+                        color:"#5b4e75", margin:0,
+                        textShadow:"2px 2px 0 rgba(255,179,71,0.4)",
+                    }}>
+                        {quiz.title} 🦉
+                    </h1>
+                    <div style={{
+                        display:"inline-block",
+                        background:"linear-gradient(135deg,#ffd93d,#ff6b6b)", color:"white",
+                        fontFamily:"'Fredoka One', cursive", fontSize:"0.95rem",
+                        padding:"4px 16px", borderRadius:50, marginTop:4,
+                    }}>
+                        ⚡ {quiz.difficulty}
+                    </div>
+                </div>
 
-                <Progress percent={questions.length ? ((currentIndex + 1) / questions.length) * 100 : 0} style={{ width: "80%", marginBottom: 20 }} />
+                {/* Progress stars */}
+                <div style={{ zIndex:2, width:"100%", maxWidth:640, marginBottom:4 }}>
+                    <ProgressStars current={currentIndex + 1} total={questions.length} />
+                    <div style={{
+                        background:"rgba(255,255,255,0.5)", borderRadius:50,
+                        height:18, overflow:"hidden",
+                        boxShadow:"inset 0 2px 6px rgba(0,0,0,0.1)",
+                    }}>
+                        <div style={{
+                            height:"100%",
+                            width:`${((currentIndex + 1) / questions.length) * 100}%`,
+                            background:"linear-gradient(90deg,#ffd93d,#ff6b6b)",
+                            borderRadius:50, transition:"width 0.5s ease",
+                            boxShadow:"0 2px 8px rgba(255,107,107,0.5)",
+                        }} />
+                    </div>
+                    <p style={{
+                        fontFamily:"'Fredoka One', cursive", color:"#5b4e75",
+                        textAlign:"center", fontSize:"1rem", margin:"4px 0 0",
+                    }}>
+                        Question {currentIndex + 1} of {questions.length}
+                    </p>
+                </div>
 
-                <Card
+                {/* Question card */}
+                <div
+                    key={currentIndex}
+                    className="question-card"
                     style={{
-                        width: "90%",
-                        maxWidth: 700,
-                        textAlign: "center",
-                        padding: "30px 40px",
-                        boxShadow: "0 8px 20px rgba(0,0,0,0.15)",
-                        fontSize: "2rem",
-                        fontWeight: "bold",
-                        border: "8px solid rgba(255, 127, 80, 0.6)",
-                        borderRadius: 20,
-                        backgroundColor: "rgba(255, 255, 255, 0.95)",
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center", // ✅ center children horizontally
+                        zIndex:2,
+                        background:"rgba(255,255,255,0.95)",
+                        borderRadius:28, padding:"28px 32px",
+                        boxShadow:"0 10px 40px rgba(0,0,0,0.15), 0 0 0 5px rgba(255,179,71,0.45)",
+                        width:"100%", maxWidth:640,
+                        display:"flex", flexDirection:"column",
+                        alignItems:"center", gap:16, marginBottom:16,
                     }}
                 >
-                    {/* ✅ Show image only if it exists */}
                     {currentQuestion?.photo && (
                         <img
                             src={`${nonApi}/${currentQuestion.photo}`}
                             alt="Question"
                             style={{
-                                maxWidth: "350px", // ✅ slightly smaller
-                                maxHeight: "250px",
-                                width: "100%",
-                                height: "auto",
-                                objectFit: "contain",
-                                marginBottom: 20,
-                                borderRadius: 12,
-                                boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+                                maxWidth:320, maxHeight:220, width:"100%", height:"auto",
+                                objectFit:"contain", borderRadius:16,
+                                boxShadow:"0 6px 20px rgba(0,0,0,0.15)",
+                                border:"4px solid #ffd93d",
                             }}
                         />
                     )}
 
-                    {/* ✅ Question text */}
-                    <div style={{ marginBottom: 20 }}>{currentQuestion?.question_text}</div>
+                    <div style={{
+                        fontFamily:"'Fredoka One', cursive",
+                        fontSize: currentQuestion?.photo ? "1.5rem" : "1.9rem",
+                        color:"#5b4e75", textAlign:"center", lineHeight:1.3,
+                    }}>
+                        {currentQuestion?.question_text}
+                    </div>
 
-                    {/* ✅ Status */}
-                    <div style={{ fontSize: "1.3rem", marginTop: 10 }}>
+                    <div style={{ minHeight:56, display:"flex", alignItems:"center", justifyContent:"center", width:"100%" }}>
                         {isSpeaking ? (
-                            <span style={{ color: "blue", fontWeight: "bold" }}>
-                                🔊 Reading question...
-                            </span>
+                            <div style={{
+                                background:"linear-gradient(135deg,#4096ff,#1677ff)", color:"white",
+                                borderRadius:50, padding:"10px 24px",
+                                fontFamily:"'Fredoka One', cursive", fontSize:"1.1rem",
+                                display:"flex", alignItems:"center", gap:8,
+                                boxShadow:"0 4px 12px rgba(64,150,255,0.4)",
+                                animation:"bounce 0.8s ease infinite",
+                            }}>
+                                🔊 Reading question…
+                            </div>
                         ) : recStatus === "listening" ? (
-                            <span
-                                style={{
-                                    color: "red",
-                                    fontWeight: "bold",
-                                    display: "inline-flex",
-                                    alignItems: "center",
-                                    gap: 8,
-                                }}
-                            >
-                                <AudioOutlined />
-                                Listening…
-                            </span>
+                            <div className="listening-indicator" style={{
+                                background:"linear-gradient(135deg,#ff6b6b,#ee1818)", color:"white",
+                                borderRadius:50, padding:"12px 28px",
+                                fontFamily:"'Fredoka One', cursive", fontSize:"1.2rem",
+                                display:"flex", alignItems:"center", gap:10,
+                                boxShadow:"0 4px 16px rgba(255,107,107,0.5)",
+                            }}>
+                                <AudioOutlined style={{ fontSize:"1.4rem" }} />
+                                🎤 Listening… Speak now!
+                            </div>
                         ) : recStatus === "error" ? (
-                            <span style={{ color: "crimson" }}>
-                                Mic unavailable. Check permissions.
-                            </span>
+                            <div style={{
+                                background:"#fff3cd", color:"#856404",
+                                borderRadius:50, padding:"10px 24px",
+                                fontFamily:"'Nunito', sans-serif", fontWeight:700, fontSize:"1rem",
+                            }}>
+                                😕 Mic not found. Check permissions!
+                            </div>
                         ) : transcript && recStatus === "idle" ? (
-                            <span style={{ color: "green", fontWeight: "bold" }}>
-                                🎉 Answer captured! You can proceed →
-                            </span>
+                            <div style={{
+                                background:"linear-gradient(135deg,#56d364,#2ea043)", color:"white",
+                                borderRadius:50, padding:"12px 28px",
+                                fontFamily:"'Fredoka One', cursive", fontSize:"1.2rem",
+                                display:"flex", alignItems:"center", gap:10,
+                                boxShadow:"0 4px 16px rgba(86,211,100,0.5)",
+                            }}>
+                                🎉 Got it! Great answer!
+                            </div>
                         ) : null}
                     </div>
-                </Card>
 
+                    {transcript && recStatus === "idle" && (
+                        <div style={{
+                            background:"linear-gradient(135deg,#f8f9fa,#e9ecef)",
+                            border:"3px dashed #ffd93d", borderRadius:16,
+                            padding:"12px 20px",
+                            fontFamily:"'Nunito', sans-serif", fontWeight:700,
+                            fontSize:"1.1rem", color:"#5b4e75", textAlign:"center", width:"100%",
+                        }}>
+                            💬 You said: "<em>{transcript}</em>"
+                        </div>
+                    )}
+                </div>
 
-                <Button
-                    type="primary"
-                    size="large"
+                {/* Next / Finish button */}
+                <button
+                    className="kid-btn"
                     onClick={handleNext}
-                    disabled={recStatus === "listening" || (!transcript && recStatus === "idle") || isSpeaking}
+                    disabled={isNextDisabled}
                     style={{
-                        backgroundColor: (recStatus === "listening" || (!transcript && recStatus === "idle") || isSpeaking) ? "#ccc" : "#ff7f50",
-                        borderColor: (recStatus === "listening" || (!transcript && recStatus === "idle") || isSpeaking) ? "#ccc" : "#ff7f50",
-                        color: "#fff",
-                        padding: "10px 30px",
-                        height: "auto",
-                        borderRadius: "10px",
-                        cursor: (recStatus === "listening" || (!transcript && recStatus === "idle") || isSpeaking) ? "not-allowed" : "pointer",
-                        marginTop: "20px",
-                        fontWeight: "bold",
-                        fontSize: "16px",
-                        boxShadow: (recStatus === "listening" || (!transcript && recStatus === "idle") || isSpeaking) ? "none" : "0 4px 8px rgba(255, 127, 80, 0.3)",
-                        transition: "all 0.3s ease",
-                        opacity: (recStatus === "listening" || (!transcript && recStatus === "idle") || isSpeaking) ? 0.6 : 1
+                        zIndex:2,
+                        background: isNextDisabled
+                            ? "linear-gradient(135deg,#ccc,#aaa)"
+                            : "linear-gradient(135deg,#ff9f43,#ff6b6b)",
+                        color:"white", padding:"16px 52px", fontSize:"1.5rem",
+                        boxShadow: isNextDisabled
+                            ? "none"
+                            : "0 8px 0 #c0392b, 0 12px 28px rgba(255,107,107,0.45)",
+                        marginBottom:16,
                     }}
                 >
-                    {isSpeaking ? "🔊 Speaking..." :
-                        recStatus === "listening" ? "Please wait..." :
-                            (currentIndex === questions.length - 1 ? "Finish" : "Next")}
-                </Button>
+                    {isSpeaking     ? "🔊 Speaking…" :
+                     recStatus === "listening" ? "🎤 Listening…" :
+                     currentIndex === questions.length - 1 ? "🏆 Finish Quiz!" : "➡️ Next Question!"}
+                </button>
+
+                <div style={{ zIndex:2, display:"flex", gap:16, fontSize:28, animation:"bounce 2s ease infinite" }}>
+                    🐣 🌈 ⭐ 🎯 🎊
+                </div>
             </div>
         </>
     );
-
 };
 
 export default StudentQuiz;
