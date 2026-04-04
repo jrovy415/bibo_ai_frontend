@@ -520,14 +520,6 @@ export default function HiClick() {
               }}>
                 Tap the button! 👇
               </div>
-              <div style={{
-                position: "absolute", bottom: -10, left: "50%",
-                transform: "translateX(-50%)",
-                width: 0, height: 0,
-                borderLeft: "10px solid transparent",
-                borderRight: "10px solid transparent",
-                borderTop: "10px solid white",
-              }} />
             </div>
 
             <button
@@ -549,9 +541,6 @@ export default function HiClick() {
             >
               🚀 Let's Go!
             </button>
-            <p style={{ color: "rgba(196,181,253,0.6)", fontSize: "0.8rem", marginTop: "-4px" }}>
-              Earn badges • Collect stars • Have fun!
-            </p>
           </div>
         )}
 

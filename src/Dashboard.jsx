@@ -16,6 +16,9 @@ import { useApi } from "../composables/useApi";
 import DataTable from './components/DataTable';
 import Settings from './QuestionTypes';
 import axios from '../plugins/axios';
+import QuizScorePieChart from "./components/QuizScorePieChart";
+import QuizAnalyticsCharts from "./components/QuizAnalyticsCharts";
+import LMSAnalyticsDashboard from "./components/LMSAnalyticsDashboard";
 
 const { Header, Sider, Content } = Layout;
 const { Title } = Typography;
@@ -538,30 +541,66 @@ const Dashboard = () => {
       return <Settings />;
     }
 
-    if (['students', 'teachers', 'quizzes', 'quiz-scores'].includes(activeKey)) {
-      return (
-        <DataTable
-          title={titleMap[activeKey] || activeKey}
-          data={items}
-          loading={loading}
-          columns={getColumnsConfig(activeKey)}
-          fields={getFieldsConfig(activeKey)}
-          onCreate={handleCreate}
-          onUpdate={handleUpdate}
-          onDelete={handleDelete}
-          onView={handleView}
-          showCreate={showCreate}
-          showView={showView}
-          showEdit={showEdit}
-          showDelete={showDelete}
-          authUser={authUser}
-          questionTypeOptions={questionTypes}
-          pagination={pagination}
-          onPageChange={handlePageChange}
-          onPageSizeChange={handlePageSizeChange}
-        />
-      );
-    }
+  if (['students', 'teachers', 'quizzes', 'quiz-scores'].includes(activeKey)) {
+
+  // LMS ANALYTICS DASHBOARD FOR QUIZ SCORES
+  if (activeKey === "quiz-scores") {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 32, width: '100%' }}>
+      {/* Analytics Dashboard */}
+      <LMSAnalyticsDashboard data={items} />
+
+      {/* Quiz Scores Table */}
+      <div>
+          <DataTable
+            title={titleMap[activeKey] || activeKey}
+            data={items}
+            loading={loading}
+            columns={getColumnsConfig(activeKey)}
+            fields={getFieldsConfig(activeKey)}
+            onCreate={handleCreate}
+            onUpdate={handleUpdate}
+            onDelete={handleDelete}
+            onView={handleView}
+            showCreate={showCreate}
+            showView={showView}
+            showEdit={showEdit}
+            showDelete={showDelete}
+            authUser={authUser}
+            questionTypeOptions={questionTypes}
+            pagination={pagination}
+            onPageChange={handlePageChange}
+            onPageSizeChange={handlePageSizeChange}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // DEFAULT TABLE FOR OTHER SECTIONS
+  return (
+    <DataTable
+      title={titleMap[activeKey] || activeKey}
+      data={items}
+      loading={loading}
+      columns={getColumnsConfig(activeKey)}
+      fields={getFieldsConfig(activeKey)}
+      onCreate={handleCreate}
+      onUpdate={handleUpdate}
+      onDelete={handleDelete}
+      onView={handleView}
+      showCreate={showCreate}
+      showView={showView}
+      showEdit={showEdit}
+      showDelete={showDelete}
+      authUser={authUser}
+      questionTypeOptions={questionTypes}
+      pagination={pagination}
+      onPageChange={handlePageChange}
+      onPageSizeChange={handlePageSizeChange}
+    />
+  );
+}
 
     return (
       <div style={{ textAlign: 'center', padding: '50px' }}>
@@ -623,7 +662,7 @@ const Dashboard = () => {
         />
       </Sider>
 
-      <Layout>
+      <Layout style={{ overflowY: 'auto', height: '100vh' }}>
         <Header style={{
           padding: 0,
           background: '#fff',
@@ -647,17 +686,18 @@ const Dashboard = () => {
         </Header>
 
         <Content style={{
-          margin: 16,
-          background: '#fff',
-          borderRadius: 8,
-          overflow: 'auto'
-        }}>
-          <Spin spinning={loading && selectedKeys[0] !== 'question-types'}>
-            <div style={{ padding: 24, minHeight: 360 }}>
-              {renderContent()}
-            </div>
-          </Spin>
-        </Content>
+  margin: 16,
+  background: '#f4f7f6',
+  borderRadius: 8,
+  overflow: 'visible',
+  height: 'auto',
+}}>
+  <Spin spinning={loading && selectedKeys[0] !== 'question-types'}>
+    <div style={{ padding: 24, minHeight: 360, height: 'auto' }}>
+      {renderContent()}
+    </div>
+  </Spin>
+</Content>
       </Layout>
     </Layout>
   );

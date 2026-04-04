@@ -59,7 +59,7 @@ export default function Login() {
 
   const tutorialSteps = [
     { title: "Welcome to BiboAI!", description: "This is your super fun learning adventure! Let me show you how to log in. Just follow the glowing steps!", speakText: "Welcome to BiboAI! This is your super fun learning adventure! Let me show you how to log in. Just follow the glowing steps!", highlight: null, emoji: "🌟", color: "#f6ad55" },
-    { title: "Step 1: Your Nickname", description: "Type your nickname in the glowing green box. It can be anything fun, like SuperStar, or your real name!", speakText: "Step 1! Type your nickname in the glowing green box. It can be anything fun, like SuperStar, or your real name!", highlight: "nickname", emoji: "😄", color: "#68d391" },
+    { title: "Step 1: Your Student Number", description: "Type your Student Number in the glowing green box.", speakText: "Step 1! Type your Student Number in the glowing green box.", highlight: "nickname", emoji: "😄", color: "#68d391" },
     { title: "Step 2: Grade Level", description: "Are you in Kinder or Grade 1? Click the button that matches your grade — it will glow!", speakText: "Step 2! Are you in Kinder or Grade 1? Click the button that matches your grade!", highlight: "gradeLevel", emoji: "📚", color: "#63b3ed" },
     { title: "Step 3: Your Section", description: "Pick your section number: 1, 2, 3, or 4. Your teacher told you which one!", speakText: "Step 3! Pick your section number. 1, 2, 3, or 4. Your teacher told you which one you are in!", highlight: "section", emoji: "🔢", color: "#b794f4" },
     { title: "Step 4: Start Adventure!", description: "All done! Now press the big orange button and start your learning adventure!", speakText: "Step 4! All done! Now press the big orange button and start your learning adventure!", highlight: "login", emoji: "🎉", color: "#fc8181" },
@@ -132,12 +132,12 @@ export default function Login() {
 
   const handleStudentSubmit = async (e) => {
     e?.preventDefault();
-    if (!nickname.trim()) {
-      setStudentError("Please enter a valid nickname.");
-      setCardShake(true);
-      setTimeout(() => setCardShake(false), 500);
-      return;
-    }
+   if (!nickname.trim() || !/^[0-9-]+$/.test(nickname)) {
+  setStudentError("Only numbers and '-' are allowed.");
+  setCardShake(true);
+  setTimeout(() => setCardShake(false), 500);
+  return;
+}
     setStudentError("");
     try {
       const response = await axios.post("/students/login", { nickname, grade_level: gradeLevel, section });
@@ -436,15 +436,33 @@ export default function Login() {
                     animation: isHighlighted('nickname') ? 'glowPulse 1.5s ease-in-out infinite' : 'none',
                   }}>
                     <label style={{ display: 'block', fontFamily: "'Fredoka One', cursive", fontSize: '0.95rem', color: '#a78bfa', marginBottom: '0.6rem', letterSpacing: '0.5px' }}>
-                      ✏️ Your Nickname
+                      ✏️ Student Number
                     </label>
-                    <input
-                      type="text" value={nickname} onChange={(e) => setNickname(e.target.value)}
-                      placeholder="Example: SuperStar"
-                      style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '14px', border: '1.5px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.07)', color: 'white', fontSize: '1.05rem', fontFamily: "'Nunito', sans-serif", fontWeight: 700, outline: 'none' }}
-                      onFocus={(e) => { e.target.style.borderColor = '#a78bfa'; e.target.style.boxShadow = '0 0 0 3px rgba(167,139,250,0.2)'; }}
-                      onBlur={(e) => { e.target.style.borderColor = 'rgba(255,255,255,0.12)'; e.target.style.boxShadow = 'none'; }}
-                    />
+  <input
+  type="text"
+  value={nickname}
+  onChange={(e) => {
+    const value = e.target.value;
+    // Allow numbers and hyphen only
+    if (/^[0-9-]*$/.test(value)) {
+      setNickname(value);
+    }
+  }}
+  placeholder="Example: 24-4824"
+  inputMode="numeric"
+  style={{
+    width: '100%',
+    padding: '0.75rem 1rem',
+    borderRadius: '14px',
+    border: '1.5px solid rgba(255,255,255,0.12)',
+    background: 'rgba(255,255,255,0.07)',
+    color: 'white',
+    fontSize: '1.05rem',
+    fontFamily: "'Nunito', sans-serif",
+    fontWeight: 700,
+    outline: 'none'
+  }}
+/>
                     {studentError && <div style={{ marginTop: '0.5rem', color: '#ff6b6b', fontWeight: 800, fontSize: '0.88rem' }}>⚠️ {studentError}</div>}
                   </div>
 

@@ -1,12 +1,14 @@
-import { useEffect, useRef, useState, useCallback } from "react";
-import { Spin } from "antd";
+import { useEffect, useRef, useState } from "react";
+import { Button, Card, Progress, Spin, message } from "antd";
 import { AudioOutlined, SoundOutlined, PauseOutlined } from "@ant-design/icons";
 import axios, { nonApi } from "../../plugins/axios";
 import { useAuth } from "../../composables/useAuth";
 import { useNavigate } from "react-router-dom";
 import QuizMaterial from "../components/QuizMaterial";
-import bgAudio from "../../plugins/bgAudio";
 
+/* ─────────────────────────────────────────────
+   Injected global styles (keyframes + fonts)
+───────────────────────────────────────────── */
 const GlobalStyles = () => (
     <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&display=swap');
@@ -63,17 +65,6 @@ const GlobalStyles = () => (
             90%  { opacity: 0.8; }
             100% { transform: translateX(110vw); opacity: 0; }
         }
-        @keyframes timerPulse {
-            0%, 100% { transform: scale(1); }
-            50%       { transform: scale(1.06); }
-        }
-        @keyframes timerShake {
-            0%, 100% { transform: translateX(0); }
-            20%       { transform: translateX(-4px); }
-            40%       { transform: translateX(4px); }
-            60%       { transform: translateX(-3px); }
-            80%       { transform: translateX(3px); }
-        }
 
         .kid-btn {
             font-family: 'Fredoka One', cursive !important;
@@ -125,16 +116,12 @@ const GlobalStyles = () => (
         .mascot-floatB {
             animation: floatB 4s ease-in-out infinite;
         }
-
-        .timer-urgent {
-            animation: timerShake 0.4s ease infinite;
-        }
-        .timer-warning {
-            animation: timerPulse 0.8s ease infinite;
-        }
     `}</style>
 );
 
+/* ─────────────────────────────────────────────
+   Confetti particles
+───────────────────────────────────────────── */
 const CONFETTI_COLORS = ["#FF6B6B","#FFD93D","#6BCB77","#4D96FF","#FF922B","#CC5DE8","#F06595"];
 const ConfettiBlast = () => {
     const pieces = Array.from({ length: 30 }, (_, i) => ({
@@ -163,6 +150,9 @@ const ConfettiBlast = () => {
     );
 };
 
+/* ─────────────────────────────────────────────
+   Floating clouds background
+───────────────────────────────────────────── */
 const Clouds = () => {
     const clouds = [
         { top:"8%",  size:80,  dur:22, delay:0   },
@@ -190,6 +180,9 @@ const Clouds = () => {
     );
 };
 
+/* ─────────────────────────────────────────────
+   Star decorations
+───────────────────────────────────────────── */
 const Stars = () => {
     const items = ["⭐","🌟","✨","💫","⭐","🌟","✨"];
     return (
@@ -209,6 +202,9 @@ const Stars = () => {
     );
 };
 
+/* ─────────────────────────────────────────────
+   Mascot SVG characters
+───────────────────────────────────────────── */
 const OwlMascot = ({ size = 80, style = {} }) => (
     <div style={{ fontSize: size, lineHeight: 1, ...style }}>🦉</div>
 );
@@ -216,6 +212,9 @@ const StarMascot = ({ size = 80, style = {} }) => (
     <div style={{ fontSize: size, lineHeight: 1, ...style }}>🌟</div>
 );
 
+/* ─────────────────────────────────────────────
+   Progress stars row
+───────────────────────────────────────────── */
 const ProgressStars = ({ current, total }) => (
     <div style={{ display:"flex", gap:6, justifyContent:"center", flexWrap:"wrap", marginBottom:16 }}>
         {Array.from({ length: total }).map((_, i) => (
@@ -231,53 +230,9 @@ const ProgressStars = ({ current, total }) => (
     </div>
 );
 
-// ── Timer display component ──────────────────────────────────────────────────
-const QuizTimer = ({ secondsLeft, totalSeconds }) => {
-    if (totalSeconds == null || totalSeconds <= 0) return null;
-
-    const mins = Math.floor(secondsLeft / 60);
-    const secs = secondsLeft % 60;
-    const display = `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
-    const pct = secondsLeft / totalSeconds;
-
-    const isUrgent  = secondsLeft <= 10;
-    const isWarning = secondsLeft <= 30 && !isUrgent;
-
-    const bgColor  = isUrgent  ? "linear-gradient(135deg,#ff4444,#cc0000)"
-                   : isWarning ? "linear-gradient(135deg,#ff9f43,#ff6b6b)"
-                               : "linear-gradient(135deg,#56d364,#2ea043)";
-
-    const emoji = isUrgent ? "🚨" : isWarning ? "⏰" : "⏱️";
-
-    return (
-        <div
-            className={isUrgent ? "timer-urgent" : isWarning ? "timer-warning" : ""}
-            style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 8,
-                background: bgColor,
-                color: "white",
-                borderRadius: 50,
-                padding: "10px 22px",
-                fontFamily: "'Fredoka One', cursive",
-                fontSize: "1.5rem",
-                boxShadow: isUrgent
-                    ? "0 0 0 4px rgba(255,68,68,0.4), 0 4px 16px rgba(255,68,68,0.5)"
-                    : "0 4px 16px rgba(0,0,0,0.2)",
-                letterSpacing: 1,
-                minWidth: 130,
-                justifyContent: "center",
-                transition: "background 0.5s ease",
-                userSelect: "none",
-            }}
-        >
-            <span style={{ fontSize: "1.2rem" }}>{emoji}</span>
-            {display}
-        </div>
-    );
-};
-
+/* ═══════════════════════════════════════════════
+   MAIN COMPONENT
+═══════════════════════════════════════════════ */
 const StudentQuiz = () => {
     const [quiz, setQuiz] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -298,18 +253,13 @@ const StudentQuiz = () => {
     const [ttsEnabled, setTtsEnabled] = useState(true);
     const [friendlyVoice, setFriendlyVoice] = useState(null);
 
-    // ── Timer state ──────────────────────────────────────────────────────────
-    const [timeLeft, setTimeLeft]   = useState(null); // seconds remaining
-    const [totalTime, setTotalTime] = useState(null); // original total seconds
-    const timerRef = useRef(null);
-
     const recognitionRef = useRef(null);
-    const finishCalledRef = useRef(false); // guard against double-finish
+    const backgroundAudioRef = useRef(null);
 
     const { authUser, getUser } = useAuth();
     const navigate = useNavigate();
 
-    // ── Load voice ──────────────────────────────────────────────────────────
+    // ── Load voice ──────────────────────────────
     useEffect(() => {
         const loadVoice = () => {
             const voices = window.speechSynthesis.getVoices();
@@ -343,7 +293,7 @@ const StudentQuiz = () => {
         return () => { window.speechSynthesis.onvoiceschanged = null; };
     }, []);
 
-    // ── TTS helpers ─────────────────────────────────────────────────────────
+    // ── TTS helpers ─────────────────────────────
     const speak = (text, callback) => {
         if (!ttsEnabled || !text) return;
         window.speechSynthesis.cancel();
@@ -358,7 +308,7 @@ const StudentQuiz = () => {
     const stopSpeaking = () => { window.speechSynthesis.cancel(); setIsSpeaking(false); };
     const toggleTTS = () => { if (isSpeaking) stopSpeaking(); setTtsEnabled(p => !p); };
 
-    // ── Fetch quiz ──────────────────────────────────────────────────────────
+    // ── Fetch quiz ──────────────────────────────
     useEffect(() => {
         const fetchQuiz = async () => {
             try {
@@ -375,7 +325,7 @@ const StudentQuiz = () => {
         fetchQuiz();
     }, []);
 
-    // ── Intro TTS ───────────────────────────────────────────────────────────
+    // ── Intro TTS ───────────────────────────────
     useEffect(() => {
         if (quiz && !started && ttsEnabled && friendlyVoice) {
             stopSpeaking();
@@ -389,7 +339,7 @@ const StudentQuiz = () => {
     const questions       = quiz?.questions || [];
     const currentQuestion = questions[currentIndex];
 
-    // ── Speech recognition ──────────────────────────────────────────────────
+    // ── Speech recognition ──────────────────────
     useEffect(() => {
         if (!started || !currentQuestion) return;
         if (!("webkitSpeechRecognition" in window) && !("SpeechRecognition" in window)) {
@@ -410,6 +360,7 @@ const StudentQuiz = () => {
                 setTranscript(text);
                 recognition.stop();
                 setRecStatus("idle");
+                // 🎉 mini-confetti on answer capture
                 setShowConfetti(true);
                 setTimeout(() => setShowConfetti(false), 3000);
             }
@@ -421,96 +372,16 @@ const StudentQuiz = () => {
         return () => { captured = true; recognition.stop(); };
     }, [currentIndex, started, currentQuestion]);
 
-    // ── Handle finish (wrapped in useCallback to use in timer) ───────────────
-    const handleFinish = useCallback(async (isTimedOut = false) => {
-        if (finishCalledRef.current) return;
-        finishCalledRef.current = true;
-
-        // Stop timer
-        if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-
-        if (bgAudio.instance) {
-            bgAudio.instance.pause();
-            bgAudio.instance.currentTime = 0;
-            bgAudio.instance = null;
-        }
-
-        stopSpeaking();
-        recognitionRef.current?.stop();
-        setButtonDisabled(false);
-        setShowConfetti(true);
-
-        const isHardLevel = quiz?.difficulty === 'Hard';
-
-        if (ttsEnabled) {
-            if (isTimedOut) {
-                speak("Time is up! Great effort! Check your grades on the dashboard!");
-            } else if (isHardLevel) {
-                speak("Fantastic! You finished the Hard level quiz! You are an absolute superstar! Check your grades on the dashboard!");
-            } else {
-                speak("Fantastic! You finished the quiz! You are a superstar! Well done!");
-            }
-        }
-
-        try {
-            await axios.patch(`/quiz-attempts/${attemptId}`);
-
-            if (isHardLevel) {
-                setTimeout(() => navigate("/student"), 2500);
-            } else {
-                navigate("/student/finished-quiz", { state: { attemptId, answers } });
-            }
-        } catch (err) {
-            console.error(err);
-            navigate("/student");
-        }
-    }, [attemptId, answers, quiz, ttsEnabled]);
-
-    // ── Countdown timer logic ────────────────────────────────────────────────
-    useEffect(() => {
-        if (!started) return;
-        // Clear any previous timer
-        if (timerRef.current) clearInterval(timerRef.current);
-
-        const limitMinutes = quiz?.time_limit;
-        if (!limitMinutes || limitMinutes <= 0) return; // no timer configured
-
-        const totalSecs = limitMinutes * 60;
-        setTotalTime(totalSecs);
-        setTimeLeft(totalSecs);
-
-        timerRef.current = setInterval(() => {
-            setTimeLeft(prev => {
-                if (prev <= 1) {
-                    clearInterval(timerRef.current);
-                    timerRef.current = null;
-                    // Save current answer then finish
-                    handleFinish(true);
-                    return 0;
-                }
-                return prev - 1;
-            });
-        }, 1000);
-
-        return () => {
-            if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-        };
-    }, [started]); // only run when quiz starts
-
-    // ── Start quiz ──────────────────────────────────────────────────────────
+    // ── Start quiz ──────────────────────────────
     const startQuiz = async () => {
         stopSpeaking();
-        finishCalledRef.current = false;
-
-        if (!bgAudio.instance) {
-            bgAudio.instance = new Audio("/quiz-bg-music.mp3");
-            bgAudio.instance.loop = true;
-            bgAudio.instance.volume = 0.09;
-            bgAudio.instance.play().catch(() => {});
+        if (!backgroundAudioRef.current) {
+            const bg = new Audio("/quiz-bg-music.mp3");
+            bg.loop = true; bg.volume = 0.09;
+            bg.play().catch(() => {});
+            backgroundAudioRef.current = bg;
         }
-
         setStarted(true);
-
         try {
             const res = await axios.post("/quiz-attempts", {
                 quiz_id: quiz.id,
@@ -531,7 +402,7 @@ const StudentQuiz = () => {
         }
     };
 
-    // ── Save answer ─────────────────────────────────────────────────────────
+    // ── Save answer ─────────────────────────────
     const saveAnswer = async () => {
         if (!currentQuestion || !attemptId) return;
         setAnswers(prev => ({ ...prev, [currentQuestion.id]: transcript || "" }));
@@ -548,7 +419,7 @@ const StudentQuiz = () => {
         }
     };
 
-    // ── Next / Finish ───────────────────────────────────────────────────────
+    // ── Next / Finish ───────────────────────────
     const handleNext = () => {
         setButtonDisabled(true);
         stopSpeaking();
@@ -558,18 +429,38 @@ const StudentQuiz = () => {
             setTranscript("");
             setTimeout(() => { recognitionRef.current?.start(); setButtonDisabled(false); }, 500);
         } else {
-            handleFinish(false);
+            handleFinish();
         }
     };
 
-    // ── Shared BG style ─────────────────────────────────────────────────────
+    const handleFinish = async () => {
+        if (backgroundAudioRef.current) {
+            backgroundAudioRef.current.pause();
+            backgroundAudioRef.current.currentTime = 0;
+            backgroundAudioRef.current = null;
+        }
+        stopSpeaking();
+        recognitionRef.current?.stop();
+        message.success("Quiz finished! Great job! 🎉");
+        setButtonDisabled(false);
+        setShowConfetti(true);
+        if (ttsEnabled) speak("Fantastic! You finished the quiz! You are a superstar! Well done!");
+        try {
+            await axios.patch(`/quiz-attempts/${attemptId}`);
+            navigate("/student/finished-quiz", { state: { attemptId, answers } });
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    // ── Shared BG style ─────────────────────────
     const bgStyle = {
         background: "linear-gradient(135deg, #a8edea, #fed6e3, #ffecd2, #a8edea)",
         backgroundSize: "400% 400%",
         animation: "rainbowBg 10s ease infinite",
     };
 
-    // ── Loading ─────────────────────────────────────────────────────────────
+    // ── Loading ─────────────────────────────────
     if (loading)
         return (
             <>
@@ -625,7 +516,8 @@ const StudentQuiz = () => {
                             onClick={toggleTTS}
                             style={{
                                 background: ttsEnabled ? "linear-gradient(135deg,#56d364,#2ea043)" : "linear-gradient(135deg,#ff6b6b,#ee1818)",
-                                color:"white", padding:"10px 20px",
+                                color:"white",
+                                padding:"10px 20px",
                                 boxShadow:"0 4px 12px rgba(0,0,0,0.2)",
                                 display:"flex", alignItems:"center", gap:8,
                                 fontSize:"1rem",
@@ -650,68 +542,71 @@ const StudentQuiz = () => {
                     <div style={{
                         position:"relative", zIndex:2,
                         background:"rgba(255,255,255,0.92)",
-                        borderRadius:32, padding:"40px 50px",
+                        borderRadius:32,
+                        padding:"40px 50px",
                         boxShadow:"0 12px 48px rgba(0,0,0,0.18), 0 0 0 6px rgba(255,179,71,0.5)",
                         display:"flex", flexDirection:"column",
                         alignItems:"center", gap:20,
                         maxWidth:520, width:"100%",
                         animation:"pop 0.5s cubic-bezier(.17,.67,.35,1.3) both",
                     }}>
+                        {/* Floating mascots */}
                         <div style={{ position:"absolute", top:-50, left:-50 }}>
-                            <div className="mascot-float"><OwlMascot size={80} /></div>
+                            <div className="mascot-float">
+                                <OwlMascot size={80} />
+                            </div>
                         </div>
                         <div style={{ position:"absolute", top:-40, right:-40 }}>
-                            <div className="mascot-floatB"><StarMascot size={64} /></div>
+                            <div className="mascot-floatB">
+                                <StarMascot size={64} />
+                            </div>
                         </div>
 
+                        {/* Title */}
                         <h1 style={{
-                            fontFamily:"'Fredoka One', cursive", fontSize:"2.4rem",
-                            color:"#5b4e75", margin:0,
-                            textShadow:"2px 2px 0 rgba(255,179,71,0.4)", textAlign:"center",
+                            fontFamily:"'Fredoka One', cursive",
+                            fontSize:"2.4rem",
+                            color:"#5b4e75",
+                            margin:0,
+                            textShadow:"2px 2px 0 rgba(255,179,71,0.4)",
+                            textAlign:"center",
                         }}>
                             {quiz.title} 🎉
                         </h1>
 
+                        {/* Difficulty badge */}
                         <div style={{
-                            background:"linear-gradient(135deg,#ffd93d,#ff6b6b)", color:"white",
-                            fontFamily:"'Fredoka One', cursive", fontSize:"1.1rem",
-                            padding:"8px 24px", borderRadius:50,
+                            background: "linear-gradient(135deg,#ffd93d,#ff6b6b)",
+                            color:"white",
+                            fontFamily:"'Fredoka One', cursive",
+                            fontSize:"1.1rem",
+                            padding:"8px 24px",
+                            borderRadius:50,
                             boxShadow:"0 3px 10px rgba(0,0,0,0.15)",
                         }}>
                             ⚡ Level: {quiz.difficulty}
                         </div>
 
+                        {/* Question count */}
                         <div style={{
                             display:"flex", gap:6, alignItems:"center",
-                            fontFamily:"'Nunito', sans-serif", fontWeight:700,
-                            fontSize:"1rem", color:"#5b4e75",
+                            fontFamily:"'Nunito', sans-serif",
+                            fontWeight:700, fontSize:"1rem", color:"#5b4e75",
                         }}>
                             📋 {questions.length} Questions to answer
                         </div>
 
-                        {/* Time limit badge — shown on intro if set */}
-                        {quiz.time_limit > 0 && (
-                            <div style={{
-                                display:"flex", alignItems:"center", gap:8,
-                                background:"linear-gradient(135deg,#e0f7fa,#b2ebf2)",
-                                border:"2px solid #4dd0e1",
-                                borderRadius:50, padding:"8px 22px",
-                                fontFamily:"'Fredoka One', cursive", fontSize:"1.1rem",
-                                color:"#006064",
-                                boxShadow:"0 3px 10px rgba(0,150,180,0.15)",
-                            }}>
-                                ⏱️ Time limit: {quiz.time_limit} minute{quiz.time_limit !== 1 ? "s" : ""}
-                            </div>
-                        )}
-
+                        {/* Buttons */}
                         <button
                             className="kid-btn"
                             onClick={() => setShowMaterials(true)}
                             style={{
-                                background:"linear-gradient(135deg,#4096ff,#1677ff)", color:"white",
+                                background:"linear-gradient(135deg,#4096ff,#1677ff)",
+                                color:"white",
                                 padding:"14px 36px",
                                 boxShadow:"0 6px 0 #1053a0, 0 8px 16px rgba(64,150,255,0.4)",
-                                width:"100%", fontSize:"1.2rem",
+                                width:"100%",
+                                fontSize:"1.2rem",
                             }}
                         >
                             📘 View Study Materials
@@ -725,17 +620,21 @@ const StudentQuiz = () => {
                                 background: (isSpeaking || startDisabled)
                                     ? "linear-gradient(135deg,#ccc,#aaa)"
                                     : "linear-gradient(135deg,#ff9f43,#ff6b6b)",
-                                color:"white", padding:"18px 48px",
+                                color:"white",
+                                padding:"18px 48px",
                                 boxShadow: (isSpeaking || startDisabled)
                                     ? "none"
                                     : "0 8px 0 #c0392b, 0 12px 30px rgba(255,107,107,0.5)",
-                                width:"100%", fontSize:"1.6rem", marginTop:4,
+                                width:"100%",
+                                fontSize:"1.6rem",
+                                marginTop:4,
                             }}
                         >
                             {isSpeaking ? "🔊 Speaking…" : startDisabled ? "⏳ Getting ready…" : "🚀 START QUIZ!"}
                         </button>
                     </div>
 
+                    {/* Bottom emojis */}
                     <div style={{ marginTop:30, fontSize:32, display:"flex", gap:12, zIndex:2, animation:"bounce 2s ease infinite" }}>
                         🐱 🌈 🎮 ⭐ 🎯
                     </div>
@@ -757,26 +656,15 @@ const StudentQuiz = () => {
                 width:"100vw", minHeight:"100vh",
                 display:"flex", flexDirection:"column",
                 alignItems:"center", justifyContent:"center",
-                padding:"20px 16px", position:"relative", overflow:"hidden",
+                padding:"20px 16px",
+                position:"relative", overflow:"hidden",
                 ...bgStyle,
             }}>
                 <Clouds />
                 <Stars />
 
-                {/* Top bar: TTS toggle + Timer */}
-                <div style={{
-                    position:"absolute", top:16, left:0, right:0,
-                    padding:"0 16px", zIndex:10,
-                    display:"flex", alignItems:"center", justifyContent:"space-between",
-                }}>
-                    {/* Timer — left side */}
-                    <div>
-                        {totalTime > 0 && timeLeft !== null && (
-                            <QuizTimer secondsLeft={timeLeft} totalSeconds={totalTime} />
-                        )}
-                    </div>
-
-                    {/* TTS toggle — right side */}
+                {/* TTS toggle */}
+                <div style={{ position:"absolute", top:16, right:16, zIndex:10, display:"flex", flexDirection:"column", alignItems:"flex-end", gap:6 }}>
                     <button
                         className="kid-btn"
                         onClick={toggleTTS}
@@ -794,19 +682,25 @@ const StudentQuiz = () => {
                 </div>
 
                 {/* Header */}
-                <div style={{ zIndex:2, textAlign:"center", marginBottom:8, marginTop: totalTime > 0 ? 60 : 0 }}>
+                <div style={{ zIndex:2, textAlign:"center", marginBottom:8 }}>
                     <h1 style={{
-                        fontFamily:"'Fredoka One', cursive", fontSize:"1.8rem",
-                        color:"#5b4e75", margin:0,
+                        fontFamily:"'Fredoka One', cursive",
+                        fontSize:"1.8rem",
+                        color:"#5b4e75",
+                        margin:0,
                         textShadow:"2px 2px 0 rgba(255,179,71,0.4)",
                     }}>
                         {quiz.title} 🦉
                     </h1>
                     <div style={{
                         display:"inline-block",
-                        background:"linear-gradient(135deg,#ffd93d,#ff6b6b)", color:"white",
-                        fontFamily:"'Fredoka One', cursive", fontSize:"0.95rem",
-                        padding:"4px 16px", borderRadius:50, marginTop:4,
+                        background:"linear-gradient(135deg,#ffd93d,#ff6b6b)",
+                        color:"white",
+                        fontFamily:"'Fredoka One', cursive",
+                        fontSize:"0.95rem",
+                        padding:"4px 16px",
+                        borderRadius:50,
+                        marginTop:4,
                     }}>
                         ⚡ {quiz.difficulty}
                     </div>
@@ -816,21 +710,27 @@ const StudentQuiz = () => {
                 <div style={{ zIndex:2, width:"100%", maxWidth:640, marginBottom:4 }}>
                     <ProgressStars current={currentIndex + 1} total={questions.length} />
                     <div style={{
-                        background:"rgba(255,255,255,0.5)", borderRadius:50,
-                        height:18, overflow:"hidden",
+                        background:"rgba(255,255,255,0.5)",
+                        borderRadius:50,
+                        height:18,
+                        overflow:"hidden",
                         boxShadow:"inset 0 2px 6px rgba(0,0,0,0.1)",
                     }}>
                         <div style={{
                             height:"100%",
                             width:`${((currentIndex + 1) / questions.length) * 100}%`,
                             background:"linear-gradient(90deg,#ffd93d,#ff6b6b)",
-                            borderRadius:50, transition:"width 0.5s ease",
+                            borderRadius:50,
+                            transition:"width 0.5s ease",
                             boxShadow:"0 2px 8px rgba(255,107,107,0.5)",
                         }} />
                     </div>
                     <p style={{
-                        fontFamily:"'Fredoka One', cursive", color:"#5b4e75",
-                        textAlign:"center", fontSize:"1rem", margin:"4px 0 0",
+                        fontFamily:"'Fredoka One', cursive",
+                        color:"#5b4e75",
+                        textAlign:"center",
+                        fontSize:"1rem",
+                        margin:"4px 0 0",
                     }}>
                         Question {currentIndex + 1} of {questions.length}
                     </p>
@@ -843,40 +743,52 @@ const StudentQuiz = () => {
                     style={{
                         zIndex:2,
                         background:"rgba(255,255,255,0.95)",
-                        borderRadius:28, padding:"28px 32px",
+                        borderRadius:28,
+                        padding:"28px 32px",
                         boxShadow:"0 10px 40px rgba(0,0,0,0.15), 0 0 0 5px rgba(255,179,71,0.45)",
                         width:"100%", maxWidth:640,
                         display:"flex", flexDirection:"column",
-                        alignItems:"center", gap:16, marginBottom:16,
+                        alignItems:"center", gap:16,
+                        marginBottom:16,
                     }}
                 >
+                    {/* Question image */}
                     {currentQuestion?.photo && (
                         <img
                             src={`${nonApi}/${currentQuestion.photo}`}
                             alt="Question"
                             style={{
-                                maxWidth:320, maxHeight:220, width:"100%", height:"auto",
-                                objectFit:"contain", borderRadius:16,
+                                maxWidth:320, maxHeight:220,
+                                width:"100%", height:"auto",
+                                objectFit:"contain",
+                                borderRadius:16,
                                 boxShadow:"0 6px 20px rgba(0,0,0,0.15)",
                                 border:"4px solid #ffd93d",
                             }}
                         />
                     )}
 
+                    {/* Question text */}
                     <div style={{
                         fontFamily:"'Fredoka One', cursive",
                         fontSize: currentQuestion?.photo ? "1.5rem" : "1.9rem",
-                        color:"#5b4e75", textAlign:"center", lineHeight:1.3,
+                        color:"#5b4e75",
+                        textAlign:"center",
+                        lineHeight:1.3,
                     }}>
                         {currentQuestion?.question_text}
                     </div>
 
+                    {/* Status indicator */}
                     <div style={{ minHeight:56, display:"flex", alignItems:"center", justifyContent:"center", width:"100%" }}>
                         {isSpeaking ? (
                             <div style={{
-                                background:"linear-gradient(135deg,#4096ff,#1677ff)", color:"white",
-                                borderRadius:50, padding:"10px 24px",
-                                fontFamily:"'Fredoka One', cursive", fontSize:"1.1rem",
+                                background:"linear-gradient(135deg,#4096ff,#1677ff)",
+                                color:"white",
+                                borderRadius:50,
+                                padding:"10px 24px",
+                                fontFamily:"'Fredoka One', cursive",
+                                fontSize:"1.1rem",
                                 display:"flex", alignItems:"center", gap:8,
                                 boxShadow:"0 4px 12px rgba(64,150,255,0.4)",
                                 animation:"bounce 0.8s ease infinite",
@@ -884,29 +796,42 @@ const StudentQuiz = () => {
                                 🔊 Reading question…
                             </div>
                         ) : recStatus === "listening" ? (
-                            <div className="listening-indicator" style={{
-                                background:"linear-gradient(135deg,#ff6b6b,#ee1818)", color:"white",
-                                borderRadius:50, padding:"12px 28px",
-                                fontFamily:"'Fredoka One', cursive", fontSize:"1.2rem",
-                                display:"flex", alignItems:"center", gap:10,
-                                boxShadow:"0 4px 16px rgba(255,107,107,0.5)",
-                            }}>
+                            <div
+                                className="listening-indicator"
+                                style={{
+                                    background:"linear-gradient(135deg,#ff6b6b,#ee1818)",
+                                    color:"white",
+                                    borderRadius:50,
+                                    padding:"12px 28px",
+                                    fontFamily:"'Fredoka One', cursive",
+                                    fontSize:"1.2rem",
+                                    display:"flex", alignItems:"center", gap:10,
+                                    boxShadow:"0 4px 16px rgba(255,107,107,0.5)",
+                                }}
+                            >
                                 <AudioOutlined style={{ fontSize:"1.4rem" }} />
                                 🎤 Listening… Speak now!
                             </div>
                         ) : recStatus === "error" ? (
                             <div style={{
-                                background:"#fff3cd", color:"#856404",
-                                borderRadius:50, padding:"10px 24px",
-                                fontFamily:"'Nunito', sans-serif", fontWeight:700, fontSize:"1rem",
+                                background:"#fff3cd",
+                                color:"#856404",
+                                borderRadius:50,
+                                padding:"10px 24px",
+                                fontFamily:"'Nunito', sans-serif",
+                                fontWeight:700,
+                                fontSize:"1rem",
                             }}>
                                 😕 Mic not found. Check permissions!
                             </div>
                         ) : transcript && recStatus === "idle" ? (
                             <div style={{
-                                background:"linear-gradient(135deg,#56d364,#2ea043)", color:"white",
-                                borderRadius:50, padding:"12px 28px",
-                                fontFamily:"'Fredoka One', cursive", fontSize:"1.2rem",
+                                background:"linear-gradient(135deg,#56d364,#2ea043)",
+                                color:"white",
+                                borderRadius:50,
+                                padding:"12px 28px",
+                                fontFamily:"'Fredoka One', cursive",
+                                fontSize:"1.2rem",
                                 display:"flex", alignItems:"center", gap:10,
                                 boxShadow:"0 4px 16px rgba(86,211,100,0.5)",
                             }}>
@@ -915,13 +840,19 @@ const StudentQuiz = () => {
                         ) : null}
                     </div>
 
+                    {/* Captured transcript preview */}
                     {transcript && recStatus === "idle" && (
                         <div style={{
                             background:"linear-gradient(135deg,#f8f9fa,#e9ecef)",
-                            border:"3px dashed #ffd93d", borderRadius:16,
+                            border:"3px dashed #ffd93d",
+                            borderRadius:16,
                             padding:"12px 20px",
-                            fontFamily:"'Nunito', sans-serif", fontWeight:700,
-                            fontSize:"1.1rem", color:"#5b4e75", textAlign:"center", width:"100%",
+                            fontFamily:"'Nunito', sans-serif",
+                            fontWeight:700,
+                            fontSize:"1.1rem",
+                            color:"#5b4e75",
+                            textAlign:"center",
+                            width:"100%",
                         }}>
                             💬 You said: "<em>{transcript}</em>"
                         </div>
@@ -938,7 +869,9 @@ const StudentQuiz = () => {
                         background: isNextDisabled
                             ? "linear-gradient(135deg,#ccc,#aaa)"
                             : "linear-gradient(135deg,#ff9f43,#ff6b6b)",
-                        color:"white", padding:"16px 52px", fontSize:"1.5rem",
+                        color:"white",
+                        padding:"16px 52px",
+                        fontSize:"1.5rem",
                         boxShadow: isNextDisabled
                             ? "none"
                             : "0 8px 0 #c0392b, 0 12px 28px rgba(255,107,107,0.45)",
@@ -950,6 +883,7 @@ const StudentQuiz = () => {
                      currentIndex === questions.length - 1 ? "🏆 Finish Quiz!" : "➡️ Next Question!"}
                 </button>
 
+                {/* Bottom mascot row */}
                 <div style={{ zIndex:2, display:"flex", gap:16, fontSize:28, animation:"bounce 2s ease infinite" }}>
                     🐣 🌈 ⭐ 🎯 🎊
                 </div>

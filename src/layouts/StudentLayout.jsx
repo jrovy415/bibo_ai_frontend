@@ -30,8 +30,8 @@ export default function StudentLayout() {
                 onClick={handleLogout}
                 style={{
                     position: "fixed",
-                    top: "70px",
-                    left: "20px",
+                    top: "92%",
+                    left: "92%",
                     zIndex: 9999,
                     boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
                     padding: "0 1.5rem",
