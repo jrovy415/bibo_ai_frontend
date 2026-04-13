@@ -1,51 +1,82 @@
 import { Button } from "antd";
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import bgAudio from "../../plugins/bgAudio";
 
+// Inject global reset to ensure nothing clips the page
+const globalStyle = `
+  html, body, #root {
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    min-height: 100% !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    box-sizing: border-box !important;
+  }
+`;
+
 export default function StudentLayout() {
-    const navigate = useNavigate();
+    const navigate  = useNavigate();
+    const location  = useLocation();
+
+    // Hide the Logout button on the finished-quiz page —
+    // that page has its own "Finish" button that handles logout cleanly.
+    const hideLogout = location.pathname.includes("/finished-quiz");
 
     const handleLogout = () => {
-        // Stop AI voice (Web Speech API)
         window.speechSynthesis.cancel();
-
-        // Stop background music via the global reference
         if (bgAudio.instance) {
             bgAudio.instance.pause();
             bgAudio.instance.currentTime = 0;
             bgAudio.instance = null;
         }
-
         navigate("/student/logout");
     };
 
     return (
-        <div className="student-layout" style={{ position: "relative", minHeight: "100vh", maxWidth: "100vw", width: "100vw" }}>
-            {/* Floating Logout button */}
-            <Button
-                type="primary"
-                danger
-                shape="round"
-                size="large"
-                onClick={handleLogout}
+        <>
+            <style>{globalStyle}</style>
+            <div
+                className="student-layout"
                 style={{
-                    position: "fixed",
-                    top: "92%",
-                    left: "92%",
-                    zIndex: 9999,
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                    padding: "0 1.5rem",
-                    fontWeight: "bold",
-                    background: "linear-gradient(135deg, #ff4d4f 0%, #ff7875 100%)",
-                    border: "none",
-                    transition: "transform 0.3s ease, box-shadow 0.3s ease",
+                    position: "relative",
+                    width: "100%",
+                    maxWidth: "100%",
+                    minHeight: "100vh",
+                    overflowX: "hidden",
+                    overflowY: "auto",
+                    boxSizing: "border-box",
                 }}
             >
-                🚪 Logout
-            </Button>
+                {/* Only show Logout button when NOT on the finished-quiz page */}
+                {!hideLogout && (
+                    <Button
+                        type="primary"
+                        danger
+                        shape="round"
+                        size="large"
+                        onClick={handleLogout}
+                        style={{
+                            position: "fixed",
+                            bottom: "24px",
+                            right: "24px",
+                            zIndex: 9999,
+                            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                            padding: "0 1.5rem",
+                            fontWeight: "bold",
+                            background: "linear-gradient(135deg, #ff4d4f 0%, #ff7875 100%)",
+                            border: "none",
+                            transition: "transform 0.3s ease, box-shadow 0.3s ease",
+                        }}
+                    >
+                        🚪 Logout
+                    </Button>
+                )}
 
-            {/* Wrapper for all student routes */}
-            <Outlet />
-        </div>
+                <Outlet />
+            </div>
+        </>
     );
 }
