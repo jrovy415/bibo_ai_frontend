@@ -78,19 +78,14 @@ const WizardSelect = ({ value, onChange, options, placeholder, disabled }) => (
   </select>
 );
 
-// ── Word-by-Word Scoring explanation box ─────────────────────────────────────
-const ScoringExplainer = ({ useWordScoring }) => (
+// ── Word-by-Word Scoring info box (always on) ───────────────────────────────
+const ScoringInfo = () => (
   <div style={{
-    fontSize: 11, color: '#777', lineHeight: 1.6,
-    background: useWordScoring ? '#f0faf5' : '#fffbf0',
-    borderRadius: 6, padding: '7px 10px',
-    border: `1px solid ${useWordScoring ? '#b2e8d0' : '#ffe58f'}`,
-    marginTop: 6,
+    fontSize: 11, color: '#0F6E56', lineHeight: 1.6,
+    background: '#f0faf5', borderRadius: 6, padding: '7px 10px',
+    border: '1px solid #b2e8d0', marginTop: 6,
   }}>
-    {useWordScoring
-      ? <><strong style={{ color: '#0F6E56' }}>🔤 Word-by-Word:</strong> Student earns partial points per correct word spoken. Example: saying 3 out of 5 words correctly = 3 pts out of 5.</>
-      : <><strong style={{ color: '#856404' }}>✅ Exact Match:</strong> Student must say the complete sentence correctly to earn full points. Partial words do not count.</>
-    }
+    <strong>🔤 Word-by-Word Scoring:</strong> Student earns partial points per correct word spoken. Example: saying 3 out of 5 words correctly = 3 pts out of 5.
   </div>
 );
 
@@ -184,7 +179,7 @@ const StepQuestions = ({ questions, setQuestions, questionTypeOptions, fileList,
   const QuestionModel = () => ({
     id: null, question_text: '', question_type_id: questionTypeOptions[0]?.value || null,
     points: 1, is_answer: true, actual_answer: '', photo: null,
-    use_word_scoring: false, // default: Exact Match
+    use_word_scoring: true, // always word-by-word
     choices: [{ id: null, choice_text: '', is_correct: false }, { id: null, choice_text: '', is_correct: false }],
   });
 
@@ -254,10 +249,10 @@ const StepQuestions = ({ questions, setQuestions, questionTypeOptions, fileList,
                 {typeName && (
                   <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 400, background: '#EEEDFE', color: '#7F77DD', borderRadius: 4, padding: '1px 6px' }}>{typeName}</span>
                 )}
-                {/* Scoring badge in header — only for Reading questions */}
+                {/* Scoring badge in header — always Word-by-Word for Reading */}
                 {isReading && (
-                  <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 600, background: useWordScoring ? '#E1F5EE' : '#FFF3CD', color: useWordScoring ? '#0F6E56' : '#856404', border: `1px solid ${useWordScoring ? '#5DCAA5' : '#FFD43B'}`, borderRadius: 4, padding: '1px 7px' }}>
-                    {useWordScoring ? '🔤 Word-by-Word' : '✅ Exact Match'}
+                  <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 600, background: '#E1F5EE', color: '#0F6E56', border: '1px solid #5DCAA5', borderRadius: 4, padding: '1px 7px' }}>
+                    🔤 Word-by-Word
                   </span>
                 )}
               </span>
@@ -304,31 +299,13 @@ const StepQuestions = ({ questions, setQuestions, questionTypeOptions, fileList,
                 </div>
               </div>
 
-              {/* ── WORD-BY-WORD SCORING TOGGLE — Reading questions only ── */}
+              {/* ── Word-by-Word Scoring — always on for Reading questions ── */}
               {isReading && (
-                <div style={{
-                  borderRadius: 10, padding: '12px 14px',
-                  background: useWordScoring ? '#f0faf5' : '#fffbf0',
-                  border: `2px solid ${useWordScoring ? '#5DCAA5' : '#FFD43B'}`,
-                  transition: 'all 0.2s ease',
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <Switch
-                      checked={useWordScoring}
-                      onChange={v => updateQuestion(qi, 'use_word_scoring', v)}
-                      disabled={isDisabled}
-                      style={{ background: useWordScoring ? '#1D9E75' : undefined }}
-                    />
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: useWordScoring ? '#0F6E56' : '#856404' }}>
-                        {useWordScoring ? '🔤 Word-by-Word Scoring' : '✅ Exact Match Scoring'}
-                      </div>
-                      <div style={{ fontSize: 11, color: '#999', marginTop: 1 }}>
-                        Toggle to change how this question is scored
-                      </div>
-                    </div>
+                <div style={{ borderRadius: 10, padding: '12px 14px', background: '#f0faf5', border: '2px solid #5DCAA5' }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#0F6E56', marginBottom: 4 }}>
+                    🔤 Word-by-Word Scoring
                   </div>
-                  <ScoringExplainer useWordScoring={useWordScoring} />
+                  <ScoringInfo />
                 </div>
               )}
 
@@ -440,11 +417,11 @@ const StepReview = ({ quizForm, material, questions, questionTypeOptions }) => {
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 13, color: '#222', marginBottom: 4 }}>{q.question_text || <span style={{ color: '#ccc' }}>(no text)</span>}</div>
 
-                {/* Scoring badge in review */}
+                {/* Scoring badge in review — always Word-by-Word */}
                 {isReading && (
                   <div style={{ marginBottom: 5 }}>
-                    <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 5, background: useWordScoring ? '#E1F5EE' : '#FFF3CD', color: useWordScoring ? '#0F6E56' : '#856404', border: `1px solid ${useWordScoring ? '#5DCAA5' : '#FFD43B'}` }}>
-                      {useWordScoring ? '🔤 Word-by-Word Scoring' : '✅ Exact Match Scoring'}
+                    <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 5, background: '#E1F5EE', color: '#0F6E56', border: '1px solid #5DCAA5' }}>
+                      🔤 Word-by-Word Scoring
                     </span>
                   </div>
                 )}
@@ -562,7 +539,7 @@ const CrudModal = ({ visible, onCancel, mode, title, data, fields, onSubmit, loa
             fd.append(`questions[${qi}][question_type_id]`, q.question_type_id || '');
             fd.append(`questions[${qi}][points]`, q.points || 1);
             fd.append(`questions[${qi}][is_answer]`, q.is_answer ? '1' : '0');
-            fd.append(`questions[${qi}][use_word_scoring]`, q.use_word_scoring === true ? '1' : '0');
+            fd.append(`questions[${qi}][use_word_scoring]`, '1'); // always word-by-word
             if (q.id) fd.append(`questions[${qi}][id]`, q.id);
             if (q.is_answer === false && q.actual_answer) fd.append(`questions[${qi}][actual_answer]`, q.actual_answer);
             if (q.photo) fd.append(`questions[${qi}][photo]`, q.photo);
@@ -572,8 +549,8 @@ const CrudModal = ({ visible, onCancel, mode, title, data, fields, onSubmit, loa
           await onSubmit(fd);
         } else {
           const processedQuestions = questions.map(q => q.is_answer === false
-            ? { ...q, use_word_scoring: q.use_word_scoring === true, choices: [{ choice_text: q.actual_answer || '', is_correct: true }] }
-            : { ...q, use_word_scoring: q.use_word_scoring === true }
+            ? { ...q, use_word_scoring: true, choices: [{ choice_text: q.actual_answer || '', is_correct: true }] }
+            : { ...q, use_word_scoring: true }
           );
           await onSubmit({ ...baseData, questions: processedQuestions });
         }

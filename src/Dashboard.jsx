@@ -3,7 +3,7 @@ import { Layout, Menu, Button, Typography, Spin, Avatar, Tooltip, Badge } from '
 import {
   UserOutlined, TeamOutlined, BookOutlined, BarChartOutlined,
   LogoutOutlined, MenuUnfoldOutlined, MenuFoldOutlined,
-  BellOutlined, SettingOutlined,
+  BellOutlined, SettingOutlined, LineChartOutlined, SmileOutlined,
 } from '@ant-design/icons';
 import { useAuth } from "../composables/useAuth";
 import { useApi } from "../composables/useApi";
@@ -11,6 +11,8 @@ import DataTable from './components/DataTable';
 import Settings from './QuestionTypes';
 import axios from '../plugins/axios';
 import LMSAnalyticsDashboard from "./components/LMSAnalyticsDashboard";
+import StudentProgression from "./StudentProgression";
+import FeedbackDashboard from "./FeedbackDashboard";
 
 const { Sider, Content } = Layout;
 
@@ -235,10 +237,12 @@ const GlobalStyle = () => (
 
 /* ── Page header info ─────────────────────────────────────────────────────── */
 const PAGE_META = {
-  students:    { title: 'Students',    subtitle: 'Manage and monitor all registered students', emoji: '👨‍🎓' },
-  teachers:    { title: 'Teachers',    subtitle: 'Manage teacher accounts and access',          emoji: '👩‍🏫' },
-  quizzes:     { title: 'Quizzes',     subtitle: 'Create and manage reading quizzes',           emoji: '📚' },
-  'quiz-scores': { title: 'Quiz Scores', subtitle: 'Analytics, scores and student performance', emoji: '📊' },
+  students:    { title: 'Students',    subtitle: 'Manage and monitor all registered students',       emoji: '👨‍🎓' },
+  teachers:    { title: 'Teachers',    subtitle: 'Manage teacher accounts and access',               emoji: '👩‍🏫' },
+  quizzes:     { title: 'Quizzes',     subtitle: 'Create and manage reading quizzes',                emoji: '📚' },
+  'quiz-scores': { title: 'Quiz Scores', subtitle: 'Analytics, scores and student performance',     emoji: '📊' },
+  progression: { title: 'Progression', subtitle: 'Track student improvement from Pre-Test to Post-Test', emoji: '📈' },
+  feedback:    { title: 'Feedback',    subtitle: 'See how students felt about each quiz',                     emoji: '😊' },
 };
 
 const titleMap = {
@@ -313,17 +317,21 @@ const Dashboard = () => {
       case "teachers":    setEndpoint("/users");        setShowCreate(true);  setShowView(true);  setShowEdit(true);  setShowDelete(true);  break;
       case "quizzes":     setEndpoint("/quizzes");      setShowCreate(true);  setShowView(true);  setShowEdit(true);  setShowDelete(true);  getQuestionTypeOptions(); break;
       case "quiz-scores": setEndpoint("/quiz-attempts"); setShowCreate(false); setShowView(true); setShowEdit(false); setShowDelete(false); break;
+      case "progression": setEndpoint(""); break;
+      case "feedback":    setEndpoint(""); break;
       default: setEndpoint("");
     }
   }, [selectedKeys]);
 
   const menuItems = [
-    { key: 'students',    icon: <UserOutlined />,     label: 'Students' },
-    { key: 'teachers',    icon: <TeamOutlined />,     label: 'Teachers' },
-    { key: 'quizzes',     icon: <BookOutlined />,     label: 'Quizzes' },
-    { key: 'quiz-scores', icon: <BarChartOutlined />, label: 'Quiz Scores' },
+    { key: 'students',    icon: <UserOutlined />,      label: 'Students' },
+    { key: 'teachers',    icon: <TeamOutlined />,      label: 'Teachers' },
+    { key: 'quizzes',     icon: <BookOutlined />,      label: 'Quizzes' },
+    { key: 'quiz-scores', icon: <BarChartOutlined />,  label: 'Quiz Scores' },
+    { key: 'progression', icon: <LineChartOutlined />, label: 'Progression' },
+    { key: 'feedback',    icon: <SmileOutlined />,     label: 'Feedback' },
     { type: 'divider' },
-    { key: 'logout',      icon: <LogoutOutlined />,   label: 'Logout', danger: true },
+    { key: 'logout',      icon: <LogoutOutlined />,    label: 'Logout', danger: true },
   ];
 
   const getFieldsConfig = (type) => {
@@ -368,6 +376,10 @@ const Dashboard = () => {
           render: v => <span style={{ background: v === 'Kinder' ? '#E8F5E9' : '#E3F2FD', color: v === 'Kinder' ? '#2E7D32' : '#1565C0', padding: '2px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700 }}>{v}</span> },
         { title: 'Section',     dataIndex: 'section',     key: 'section',
           render: v => <span style={{ background: '#F3E5F5', color: '#6A1B9A', padding: '2px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700 }}>Section {v}</span> },
+        { title: 'Status', dataIndex: 'is_locked', key: 'is_locked',
+          render: v => v
+            ? <span style={{ background: '#FFEBEE', color: '#C62828', padding: '2px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700 }}>🔒 Locked</span>
+            : <span style={{ background: '#E8F5E9', color: '#2E7D32', padding: '2px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700 }}>✅ Active</span> },
       ];
       case 'teachers': return [
         { title: 'Username',   dataIndex: 'username',   key: 'username' },
@@ -393,6 +405,13 @@ const Dashboard = () => {
       ];
       default: return [];
     }
+  };
+
+  const handleLockToggle = async (record, lock) => {
+    try {
+      await axios.patch(`/students/${record.id}/${lock ? 'lock' : 'unlock'}`);
+      await fetchData(currentPage, pageSize);
+    } catch(e) { console.error(e); }
   };
 
   const handleCreate = async (fd) => {
@@ -461,6 +480,38 @@ const Dashboard = () => {
   const meta = PAGE_META[activeKey] || { title: 'Dashboard', subtitle: '', emoji: '🏠' };
 
   const renderContent = () => {
+    if (activeKey === 'feedback') {
+      return (
+        <div className="bibo-content-card" style={{ padding:0, overflow:'hidden' }}>
+          <div style={{ padding:'20px 24px', borderBottom:'1px solid #F0F2FF', background:'linear-gradient(135deg,#6C63FF08,#43D9AD08)' }}>
+            <div style={{ fontWeight:800, fontSize:16, color:'#1A1A2E' }}>😊 Student Feedback</div>
+            <div style={{ fontSize:12, color:'#6B7280', marginTop:2 }}>
+              See how students felt about each quiz
+            </div>
+          </div>
+          <div style={{ padding:20 }}>
+            <FeedbackDashboard />
+          </div>
+        </div>
+      );
+    }
+
+    if (activeKey === 'progression') {
+      return (
+        <div className="bibo-content-card" style={{ padding:0, overflow:'hidden' }}>
+          <div style={{ padding:'20px 24px', borderBottom:'1px solid #F0F2FF', background:'linear-gradient(135deg,#6C63FF08,#43D9AD08)' }}>
+            <div style={{ fontWeight:800, fontSize:16, color:'#1A1A2E' }}>📈 Student Progression</div>
+            <div style={{ fontSize:12, color:'#6B7280', marginTop:2 }}>
+              Track each student's improvement from Pre-Test to Post-Test
+            </div>
+          </div>
+          <div style={{ padding:20 }}>
+            <StudentProgression />
+          </div>
+        </div>
+      );
+    }
+
     if (activeKey === 'quiz-scores') {
       const tableData = filteredItems.length > 0 || items.length === 0 ? filteredItems : items;
       return (
@@ -504,6 +555,7 @@ const Dashboard = () => {
               pageSizeOptions: ['10','20','50','100'],
             } : null}
             showSearch={activeKey === 'students'}
+            onLockToggle={activeKey === 'students' ? handleLockToggle : null}
           />
         </div>
       );

@@ -435,6 +435,8 @@ const StudentQuiz = () => {
     const [showConfetti,   setShowConfetti]   = useState(false);
     const [attemptId,      setAttemptId]      = useState(null);
     const [showMaterials,  setShowMaterials]  = useState(false);
+    const [quizUnlocked,   setQuizUnlocked]   = useState(false);
+    const [materialDone,   setMaterialDone]   = useState(false);
     const [isSpeaking,     setIsSpeaking]     = useState(false);
     const [ttsEnabled,     setTtsEnabled]     = useState(true);
     const [timerKey,       setTimerKey]       = useState(0);
@@ -472,7 +474,12 @@ const StudentQuiz = () => {
             try {
                 await getUser();
                 const res = await axios.get("/quizzes/get-quiz");
-                setQuiz(res.data.data || null);
+                const fetchedQuiz = res.data.data || null;
+                setQuiz(fetchedQuiz);
+                // If no material or material is a link → auto-unlock
+                const mat = fetchedQuiz?.material;
+                const needsUnlock = mat && (mat.title || mat.content) && mat.type !== 'link';
+                if (!needsUnlock) setQuizUnlocked(true);
             } catch (err) { console.error(err); navigate("/student"); }
             finally { setLoading(false); }
         };
@@ -718,6 +725,8 @@ const StudentQuiz = () => {
                 visible={showMaterials}
                 onClose={() => setShowMaterials(false)}
                 material={quiz?.material && (quiz.material.title || quiz.material.content) ? quiz.material : null}
+                onVideoWatched={() => { setQuizUnlocked(true); setMaterialDone(true); setShowMaterials(false); }}
+                onStoryRead={() => { setQuizUnlocked(true); setMaterialDone(true); setShowMaterials(false); }}
             />
             <div style={{ width:"100vw", minHeight:"100vh", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:20, position:"relative", overflow:"hidden", ...bgStyle }}>
                 <Clouds /><Stars />
@@ -754,15 +763,30 @@ const StudentQuiz = () => {
                             🏆 This is the <strong>Post-Test</strong>! You have completed all reading levels! This is your final challenge! Show everything you have learned! 🎓
                         </div>
                     )}
-                    <button className="kid-btn" onClick={() => setShowMaterials(true)} style={{ background:"linear-gradient(135deg,#4096ff,#1677ff)", color:"white", padding:"14px 36px", boxShadow:"0 6px 0 #1053a0, 0 8px 16px rgba(64,150,255,0.4)", width:"100%", fontSize:"1.2rem" }}>
-                        📘 View Study Materials
+                    <button
+                        className="kid-btn"
+                        onClick={() => !materialDone && setShowMaterials(true)}
+                        disabled={materialDone}
+                        style={{
+                            background: materialDone
+                                ? "linear-gradient(135deg,#ccc,#aaa)"
+                                : "linear-gradient(135deg,#4096ff,#1677ff)",
+                            color:"white", padding:"14px 36px",
+                            boxShadow: materialDone ? "none" : "0 6px 0 #1053a0, 0 8px 16px rgba(64,150,255,0.4)",
+                            width:"100%", fontSize:"1.2rem",
+                            cursor: materialDone ? "not-allowed" : "pointer",
+                        }}
+                    >
+                        {materialDone
+                            ? (quiz?.material?.type === "story" ? "✅ Story Read!" : "✅ Video Watched!")
+                            : "📘 View Study Materials"}
                     </button>
                     <button
-                        className={`kid-btn ${!(isSpeaking || startDisabled) ? "start-btn-glow" : ""}`}
-                        onClick={startQuiz} disabled={isSpeaking || startDisabled}
-                        style={{ background: (isSpeaking || startDisabled) ? "linear-gradient(135deg,#ccc,#aaa)" : isPostTest ? "linear-gradient(135deg,#a9e34b,#2f9e44)" : "linear-gradient(135deg,#ff9f43,#ff6b6b)", color:"white", padding:"18px 48px", boxShadow: (isSpeaking || startDisabled) ? "none" : isPostTest ? "0 8px 0 #1e7a34, 0 12px 30px rgba(46,164,68,0.5)" : "0 8px 0 #c0392b, 0 12px 30px rgba(255,107,107,0.5)", width:"100%", fontSize:"1.6rem", marginTop:4 }}
+                        className={`kid-btn ${!(isSpeaking || startDisabled) && quizUnlocked ? "start-btn-glow" : ""}`}
+                        onClick={startQuiz} disabled={isSpeaking || startDisabled || !quizUnlocked}
+                        style={{ background: (isSpeaking || startDisabled || !quizUnlocked) ? "linear-gradient(135deg,#ccc,#aaa)" : isPostTest ? "linear-gradient(135deg,#a9e34b,#2f9e44)" : "linear-gradient(135deg,#ff9f43,#ff6b6b)", color:"white", padding:"18px 48px", boxShadow: (isSpeaking || startDisabled || !quizUnlocked) ? "none" : isPostTest ? "0 8px 0 #1e7a34, 0 12px 30px rgba(46,164,68,0.5)" : "0 8px 0 #c0392b, 0 12px 30px rgba(255,107,107,0.5)", width:"100%", fontSize:"1.6rem", marginTop:4 }}
                     >
-                        {isSpeaking ? "🔊 Speaking…" : startDisabled ? "⏳ Getting ready…" : isPostTest ? "🎓 START POST-TEST!" : "🚀 START QUIZ!"}
+                        {isSpeaking ? "🔊 Speaking…" : startDisabled ? "⏳ Getting ready…" : !quizUnlocked ? "🔒 Watch the video first!" : isPostTest ? "🎓 START POST-TEST!" : "🚀 START QUIZ!"}
                     </button>
                 </div>
                 <div style={{ marginTop:30, fontSize:32, display:"flex", gap:12, zIndex:2, animation:"bounce 2s ease infinite" }}>🐱 🌈 🎮 ⭐ 🎯</div>

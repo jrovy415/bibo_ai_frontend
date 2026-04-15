@@ -4,6 +4,7 @@ import GameClick from "../src/GameClick";
 import Login from "../src/Login";
 import Dashboard from "../src/Dashboard";
 import StudentLayout from "../src/layouts/StudentLayout";
+import LockedScreen from "../src/student/LockedScreen";
 
 import Animal from "../src/Animal";
 import Default from "../src/DefaultHome";
@@ -53,22 +54,20 @@ const AuthRedirect = ({ children }) => {
     if (isTeacherAuthenticated()) {
         return <Navigate to="/dashboard" replace />;
     }
-
     if (isStudentAuthenticated()) {
         return <Navigate to="/student" replace />;
     }
-
     return children;
 };
 
 const router = createBrowserRouter([
     {
         path: "/",
-        element: <HiClick />, // 👈 Show HiClick first when app loads
+        element: <HiClick />,
     },
     {
         path: "/gameclick",
-        element: <GameClick />, // 👈 Then show GameClick
+        element: <GameClick />,
     },
     {
         path: "/login",
@@ -85,6 +84,12 @@ const router = createBrowserRouter([
                 <Dashboard />
             </ProtectedRoute>
         ),
+    },
+    // ── Locked account screen ─────────────────────────────────────────────
+    // No auth protection needed — student is locked out so they have no token
+    {
+        path: "/locked",
+        element: <LockedScreen />,
     },
     {
         path: "/student",
@@ -105,7 +110,6 @@ const router = createBrowserRouter([
         element: <SpeechToText />
     }
 ]);
-
 
 export default function Router() {
     return <RouterProvider router={router} />;

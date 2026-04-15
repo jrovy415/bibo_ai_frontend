@@ -27,6 +27,7 @@ const DataTable = ({
   localPagination = null,
   // Enable local search bar (for Students page)
   showSearch = false,
+  onLockToggle = null,
 }) => {
   const [modalState, setModalState] = useState({ visible: false, mode: null, data: null });
   const [actionLoading, setActionLoading] = useState(false);
@@ -118,6 +119,20 @@ const DataTable = ({
           )}
           {showEdit && (
             <Button size="small" type="primary" icon={<EditOutlined />} onClick={() => handleEdit(record)}>Edit</Button>
+          )}
+          {onLockToggle && (
+            <Button
+              size="small"
+              onClick={() => onLockToggle(record, !record.is_locked)}
+              style={{
+                background: record.is_locked ? '#E8F5E9' : '#FFEBEE',
+                color:      record.is_locked ? '#2E7D32' : '#C62828',
+                border:     `1px solid ${record.is_locked ? '#A5D6A7' : '#EF9A9A'}`,
+                borderRadius: 8,
+              }}
+            >
+              {record.is_locked ? '🔓 Unlock' : '🔒 Lock'}
+            </Button>
           )}
           {showDelete && (
             <Popconfirm
