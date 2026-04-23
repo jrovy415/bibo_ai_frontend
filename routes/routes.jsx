@@ -86,7 +86,6 @@ const router = createBrowserRouter([
         ),
     },
     // ── Locked account screen ─────────────────────────────────────────────
-    // No auth protection needed — student is locked out so they have no token
     {
         path: "/locked",
         element: <LockedScreen />,
@@ -102,8 +101,15 @@ const router = createBrowserRouter([
             { path: "", element: <StudentDashboard /> },
             { path: "quiz", element: <StudentQuiz /> },
             { path: "finished-quiz", element: <StudentFinishedQuiz /> },
-            { path: "logout", element: <StudentLogout /> },
         ],
+    },
+    // ✅ FIXED: Inilabas sa labas ng StudentProtectedRoute
+    // Dahil kapag tinanggal na ang token bago mag-navigate("/student/logout"),
+    // ang StudentProtectedRoute ay nag-re-redirect sa "/" (HiClick) kasi wala nang token.
+    // Ngayon, direkta na ang /student/logout at hindi nangangailangan ng token.
+    {
+        path: "/student/logout",
+        element: <StudentLogout />,
     },
     {
         path: "/speech",

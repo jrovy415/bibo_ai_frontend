@@ -335,7 +335,7 @@ export default function HiClick() {
     });
   };
 
-  const MODAL_TEXT  = "Woohoo! I'm BiboAI, your super smart buddy! I can listen and understand everything you say! Let's go on an amazing adventure and learn together!";
+  const MODAL_TEXT  = "Hello there! I'm BiboAI, your super smart buddy! I can listen and understand everything you say! Let's go on an amazing adventure and learn together!";
   const MODAL_WORDS = MODAL_TEXT.split(" ");
 
   const startIntro = () => {

@@ -15,13 +15,32 @@ const FEELING_CONFIG = {
   hard: { emoji: "😔", label: "Hard",   bg: "#FEE2E2", color: "#B91C1C", border: "#FCA5A5" },
 };
 
+// ✅ FIXED: Added all PostTest variants
 const DIFF_COLORS = {
-  Introduction: "#1565C0", Easy: "#2E7D32", Medium: "#E65100",
-  Hard: "#880E4F", Expert: "#4A148C", PostTest: "#33691E",
+  Introduction:   "#1565C0",
+  Easy:           "#2E7D32",
+  EasyPostTest:   "#1B5E20",
+  Medium:         "#E65100",
+  MediumPostTest: "#BF360C",
+  Hard:           "#880E4F",
+  HardPostTest:   "#6A1B9A",
+  Expert:         "#4A148C",
+  ExpertPostTest: "#311B92",
+  PostTest:       "#33691E",
 };
+
+// ✅ FIXED: Added all PostTest variants
 const DIFF_LABELS = {
-  Introduction:"Pre-Test", Easy:"Low Reader", Medium:"Developing Reader",
-  Hard:"Grade Ready Reader", Expert:"Advanced Reader", PostTest:"Post-Test",
+  Introduction:   "Pre-Test",
+  Easy:           "Low Reader",
+  EasyPostTest:   "Low Reader Post-Test",
+  Medium:         "Beginning Reader",
+  MediumPostTest: "Beginning Reader Post-Test",
+  Hard:           "Developing Reader",
+  HardPostTest:   "Developing Reader Post-Test",
+  Expert:         "Grade Ready Reader",
+  ExpertPostTest: "Grade Ready Post-Test",
+  PostTest:       "Post-Test",
 };
 
 const FeelingTag = ({ feeling }) => {
@@ -64,7 +83,6 @@ export default function FeedbackDashboard() {
   const perQuiz  = data?.per_quiz  || [];
   const feedbacks= data?.feedbacks || [];
 
-  // Dropdown options from feedbacks
   const gradeOptions = [...new Set(feedbacks.map(f => f.student?.grade_level).filter(Boolean))];
   const quizOptions  = [...new Map(feedbacks.map(f => [f.quiz_id, f.quiz])).values()].filter(Boolean);
 
@@ -90,9 +108,10 @@ export default function FeedbackDashboard() {
           {r.quiz?.difficulty && (
             <span style={{
               fontSize:11, padding:"1px 8px", borderRadius:20, fontWeight:700,
-              background: DIFF_COLORS[r.quiz.difficulty] + "18",
-              color: DIFF_COLORS[r.quiz.difficulty],
+              background: (DIFF_COLORS[r.quiz.difficulty] || "#aaa") + "18",
+              color: DIFF_COLORS[r.quiz.difficulty] || "#aaa",
             }}>
+              {/* ✅ FIXED: Shows proper label for all PostTest variants */}
               {DIFF_LABELS[r.quiz.difficulty] || r.quiz.difficulty}
             </span>
           )}
@@ -116,13 +135,13 @@ export default function FeedbackDashboard() {
   const STYLES = `
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
     .fb-dash * { font-family: 'Plus Jakarta Sans', sans-serif !important; box-sizing: border-box; }
-    .fb-filters { background:white; border-radius:16px; padding:16px 20px; box-shadow:0 2px 12px rgba(108,99,255,0.08); display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:20px; }
+    .fb-filters { background:white; border-radius:16px; padding:16px 20px; box-shadow:0 2px 12px rgba(108,99,255,0.08); display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:20px; transition:background 0.3s; }
     .fb-summary { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:12px; margin-bottom:20px; }
-    .fb-stat { background:white; border-radius:14px; padding:14px 16px; box-shadow:0 2px 12px rgba(108,99,255,0.08); text-align:center; }
+    .fb-stat { background:white; border-radius:14px; padding:14px 16px; box-shadow:0 2px 12px rgba(108,99,255,0.08); text-align:center; transition:background 0.3s; }
     .fb-stat-emoji { font-size:28px; margin-bottom:4px; line-height:1; }
     .fb-stat-num { font-size:26px; font-weight:800; line-height:1; margin-bottom:2px; }
     .fb-stat-lbl { font-size:12px; color:${C.muted}; font-weight:500; }
-    .fb-card { background:white; border-radius:16px; padding:20px; box-shadow:0 2px 12px rgba(108,99,255,0.08); margin-bottom:20px; }
+    .fb-card { background:white; border-radius:16px; padding:20px; box-shadow:0 2px 12px rgba(108,99,255,0.08); margin-bottom:20px; transition:background 0.3s; }
     .fb-card-title { font-size:14px; font-weight:700; color:${C.text}; margin:0 0 14px; }
     .fb-bar-row { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
     .fb-bar-emoji { font-size:18px; width:28px; text-align:center; flex-shrink:0; }
@@ -239,6 +258,7 @@ export default function FeedbackDashboard() {
                       <div key={q.quiz_id} className="pq-card"
                         style={{ background: dc+"08", borderColor: dc+"33" }}>
                         <div className="pq-title" style={{ color:C.text }}>{q.quiz_title}</div>
+                        {/* ✅ FIXED: Shows proper label for PostTest variants */}
                         <span className="pq-diff" style={{ background:dc+"18", color:dc }}>
                           {DIFF_LABELS[q.difficulty] || q.difficulty}
                         </span>

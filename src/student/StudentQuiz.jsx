@@ -297,12 +297,18 @@ const getPlacementLevel = (pct) => {
     return "Easy";
 };
 
-const DIFFICULTY_SEQUENCE = ["Easy", "Medium", "Hard", "Expert", "PostTest"];
-const getNextDifficulty = (currentDifficulty) => {
-    const idx = DIFFICULTY_SEQUENCE.indexOf(currentDifficulty);
-    if (idx === -1 || idx >= DIFFICULTY_SEQUENCE.length - 1) return null;
-    return DIFFICULTY_SEQUENCE[idx + 1];
-};
+// New difficulty sequence — each level has its own Post-Test
+const DIFFICULTY_SEQUENCE = [
+    "Easy", "EasyPostTest",
+    "Medium", "MediumPostTest",
+    "Hard", "HardPostTest",
+    "Expert", "ExpertPostTest",
+];
+
+// Post-Test difficulties — these are terminal (quiz ends after)
+const POST_TEST_DIFFICULTIES = ["EasyPostTest","MediumPostTest","HardPostTest","ExpertPostTest","PostTest"];
+
+const isLevelPostTest = (diff) => POST_TEST_DIFFICULTIES.includes(diff);
 
 const AutoNextCountdown = ({ seconds, isPrePost }) => (
     <div style={{ position:"fixed", inset:0, zIndex:8000, display:"flex", alignItems:"center", justifyContent:"center", pointerEvents:"none" }}>
@@ -455,7 +461,7 @@ const StudentQuiz = () => {
     const navigate = useNavigate();
 
     const isPreTest  = quiz?.difficulty === "Introduction";
-    const isPostTest = quiz?.difficulty === "PostTest";
+    const isPostTest = isLevelPostTest(quiz?.difficulty);
 
     const speak = useCallback((text, callback) => {
         if (!ttsEnabled || !text) return;
@@ -492,7 +498,7 @@ const StudentQuiz = () => {
         stopSpeaking();
         if (!ttsEnabled) { setTimeout(() => setStartDisabled(false), 1000); return; }
         let introText;
-        if (isPreTest)       introText = `Hello there! Welcome to ${quiz.title}! This is your Pre-Test! Just do your best and I will find the perfect reading level for you! Press the big button when you are ready!`;
+        if (isPreTest)       introText = `Hello there! Welcome to ${quiz.title}! This is your Pre-Test! Just do your best and I will find the perfect reading level for you! Finish the Learning Materials First!`;
         else if (isPostTest) introText = `Amazing! You have reached the Post-Test! This is your final quiz! Show everything you have learned! You are a superstar! Press the big button when you are ready!`;
         else                 introText = `Hello there! Welcome to ${quiz.title}! This is a ${quiz.difficulty} level quiz. Take your time and press the big button when you are ready! You are going to do amazing!`;
         setTimeout(() => speak(introText, () => setStartDisabled(false)), 1500);
@@ -614,18 +620,13 @@ const StudentQuiz = () => {
             if (isPreTest && authUser?.id) {
                 const answersToUse = finalAnswers ?? answersRef.current;
 
-                let totalEarned = 0, totalPossible = 0;
-                for (const q of questions) {
-                    const spokenAnswer = answersToUse[q.id] ?? "";
-                    const pts          = q.points ?? 1;
-                    totalPossible += pts;
-                    // Use per-question scoring method for placement calculation
-                    // Pre-Test always word-by-word for accurate placement
-                    const earned = computeWordScore(spokenAnswer, q, true);
-                    if (earned !== null) totalEarned += earned;
-                }
-
-                const percentage = totalPossible > 0 ? (totalEarned / totalPossible) * 100 : 0;
+               let totalPct = 0, count = 0;
+for (const q of questions) {
+    const spokenAnswer = answersToUse[q.id] ?? "";
+    const pct = computeWordScore(spokenAnswer, q, true); // 0-100 na siya
+    if (pct !== null) { totalPct += pct; count++; }
+}
+const percentage = count > 0 ? totalPct / count : 0;
                 const newLevel   = getPlacementLevel(percentage);
                 console.log(`Pre-test placement: ${percentage.toFixed(1)}% → ${newLevel}`);
 
