@@ -615,6 +615,23 @@ const StudentQuiz = () => {
         if (ttsEnabled) speak(finishMsg);
 
         try {
+            // Flush all answers to DB before PATCH so word_scores are saved
+            const answersToFlush = finalAnswers ?? answersRef.current;
+            await Promise.all(
+                (questions ?? []).map((q) => {
+                    const transcript = answersToFlush[q.id] ?? "";
+                    const wordScore = computeWordScore(transcript, q, isPreTest || isPostTest);
+                    return axios.post("/answers", {
+                        question_id: q.id,
+                        student_id: authUser?.id,
+                        attempt_id: attemptId,
+                        choice_id: null,
+                        transcript: transcript || "",
+                        ...(wordScore !== null ? { word_score: wordScore } : {}),
+                    }).catch(console.error);
+                })
+            );
+
             await axios.patch(`/quiz-attempts/${attemptId}`);
 
             if (isPreTest && authUser?.id) {

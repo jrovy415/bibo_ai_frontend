@@ -30,7 +30,7 @@ export default function StudentLogout() {
         localStorage.removeItem("APP_STUDENT");
 
         // Redirect to login
-        navigate("Login", { replace: true });
+        navigate("/login", { replace: true });
       }
     };
 
