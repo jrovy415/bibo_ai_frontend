@@ -95,10 +95,13 @@ axiosRequest.interceptors.response.use(
   (error) => {
     const { response, config, request } = error;
 
-    // Skip notifications for /quizzes endpoint
+    // Skip notifications for quiz-related endpoints (errors are handled gracefully in the quiz flow)
+    const url = request?.responseURL ?? config?.url ?? "";
     if (
-      request?.responseURL?.endsWith("/quizzes") ||
-      request?.responseURL?.endsWith("/quizzes/get-quiz")
+      url.endsWith("/quizzes") ||
+      url.endsWith("/quizzes/get-quiz") ||
+      url.includes("/answers") ||
+      url.includes("/quiz-attempts")
     ) {
       return Promise.reject(error);
     }

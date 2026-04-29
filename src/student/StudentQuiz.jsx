@@ -651,53 +651,48 @@ const StudentQuiz = () => {
         else                finishMsg = "Fantastic! You finished the quiz! You are a superstar! Well done!";
         if (ttsEnabled) speak(finishMsg);
 
-        try {
-            // Flush all answers to DB before PATCH so word_scores are saved
-            const answersToFlush = finalAnswers ?? answersRef.current;
-            await Promise.all(
-                (questions ?? []).map((q) => {
-                    const transcript = answersToFlush[q.id] ?? "";
-                    const wordScore = computeWordScore(transcript, q, isPreTest || isPostTest);
-                    return axios.post("/answers", {
-                        question_id: q.id,
-                        student_id: authUser?.id,
-                        attempt_id: attemptId,
-                        choice_id: null,
-                        transcript: transcript || "",
-                        ...(wordScore !== null ? { word_score: wordScore } : {}),
-                    }).catch(console.error);
-                })
-            );
+        // Flush all answers to DB before PATCH so word_scores are saved
+        const answersToFlush = finalAnswers ?? answersRef.current;
+        await Promise.all(
+            (questions ?? []).map((q) => {
+                const transcript = answersToFlush[q.id] ?? "";
+                const wordScore = computeWordScore(transcript, q, isPreTest || isPostTest);
+                return axios.post("/answers", {
+                    question_id: q.id,
+                    student_id: authUser?.id,
+                    attempt_id: attemptId,
+                    choice_id: null,
+                    transcript: transcript || "",
+                    ...(wordScore !== null ? { word_score: wordScore } : {}),
+                }).catch(console.error);
+            })
+        );
 
-            await axios.patch(`/quiz-attempts/${attemptId}`);
+        // PATCH to close the attempt — don't block navigation if it's slow/fails
+        axios.patch(`/quiz-attempts/${attemptId}`).catch(console.error);
 
-            if (isPreTest && authUser?.id) {
-                const answersToUse = finalAnswers ?? answersRef.current;
-
-               let totalPct = 0, count = 0;
-for (const q of questions) {
-    const spokenAnswer = answersToUse[q.id] ?? "";
-    const pct = computeWordScore(spokenAnswer, q, true); // 0-100 na siya
-    if (pct !== null) { totalPct += pct; count++; }
-}
-const percentage = count > 0 ? totalPct / count : 0;
-                const newLevel   = getPlacementLevel(percentage);
-                console.log(`Pre-test placement: ${percentage.toFixed(1)}% → ${newLevel}`);
-
-                try {
-                    await axios.patch(`/students/${authUser.id}`, { difficulty: newLevel });
-                } catch (levelErr) { console.error("Level update failed:", levelErr); }
+        if (isPreTest && authUser?.id) {
+            const answersToUse = finalAnswers ?? answersRef.current;
+            let totalPct = 0, count = 0;
+            for (const q of questions) {
+                const spokenAnswer = answersToUse[q.id] ?? "";
+                const pct = computeWordScore(spokenAnswer, q, true);
+                if (pct !== null) { totalPct += pct; count++; }
             }
+            const percentage = count > 0 ? totalPct / count : 0;
+            const newLevel   = getPlacementLevel(percentage);
+            console.log(`Pre-test placement: ${percentage.toFixed(1)}% → ${newLevel}`);
+            axios.patch(`/students/${authUser.id}`, { difficulty: newLevel }).catch(console.error);
+        }
 
-            navigate("/student/finished-quiz", {
-                state: {
-                    attemptId,
-                    answers: finalAnswers ?? answersRef.current,
-                    isPostTest,
-                    quizDifficulty: quiz?.difficulty,
-                }
-            });
-        } catch (err) { console.error(err); }
+        navigate("/student/finished-quiz", {
+            state: {
+                attemptId,
+                answers: finalAnswers ?? answersRef.current,
+                isPostTest,
+                quizDifficulty: quiz?.difficulty,
+            }
+        });
     };
 
     const handleNext = () => {
