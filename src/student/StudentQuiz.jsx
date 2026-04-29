@@ -518,49 +518,48 @@ const StudentQuiz = () => {
         const recognition = new SpeechRecognition();
         let captured = false;
         let silenceTimer = null;
-        // Accumulates final results across recognition restarts.
-        // On Android Chrome, isFinal fires after each word (not the full sentence),
-        // so we must collect all finals before triggering capture.
         let finalText = "";
+        let lastFinalIndex = -1; // tracks last processed result to prevent duplicates
 
         recognition.continuous     = true;
         recognition.interimResults = true;
         recognition.lang           = "en-US";
         recognition.onstart  = () => {
             setRecStatus("listening");
-            // Timer starts on first mic ready, resumes on each question
             setTimerStarted(true);
             setTimerPaused(false);
         };
         recognition.onresult = (event) => {
-            // Collect every final result from this session
-            let sessionFinals = "";
-            for (let i = 0; i < event.results.length; i++) {
+            // Only process NEW final results (track lastFinalIndex to avoid duplicates)
+            let newFinals = "";
+            for (let i = lastFinalIndex + 1; i < event.results.length; i++) {
                 if (event.results[i].isFinal) {
-                    sessionFinals += event.results[i][0].transcript + " ";
+                    newFinals += event.results[i][0].transcript + " ";
+                    lastFinalIndex = i;
                 }
             }
-            // Current interim (not yet final)
+
+            // Current interim result (not yet final)
             const lastResult = event.results[event.results.length - 1];
             const interim = !lastResult.isFinal ? lastResult[0].transcript : "";
 
-            // Append new finals to accumulator
-            if (sessionFinals.trim()) {
-                finalText = (finalText + " " + sessionFinals).trim();
+            // Append only NEW finals to accumulator
+            if (newFinals.trim()) {
+                finalText = (finalText + " " + newFinals).trim();
             }
 
             // Show accumulated finals + current interim in real time
             const displayText = (finalText + (interim ? " " + interim : "")).trim();
             if (displayText) setTranscript(displayText);
 
-            // Reset the silence timer on every new speech input
+            // Reset silence timer — capture after 2s of no new speech
             if (silenceTimer) clearTimeout(silenceTimer);
             silenceTimer = setTimeout(() => {
                 if (!captured && finalText) {
                     captured = true;
                     recognition.stop();
                     setRecStatus("idle");
-                    setTimerPaused(true); // pause timer while auto-next countdown runs
+                    setTimerPaused(true);
                     setShowConfetti(true);
                     setTimeout(() => setShowConfetti(false), 3000);
                     const capturedText = finalText;
@@ -572,10 +571,10 @@ const StudentQuiz = () => {
                         else { setAutoNextCountdown(count); }
                     }, 1000);
                 }
-            }, 2000); // wait 2 s of silence before capturing the full answer
+            }, 2000);
         };
         recognition.onerror = () => setRecStatus("error");
-        // Only restart if nothing has been heard yet — prevents looping/echo duplicates
+        // Only restart when nothing heard yet — prevents echo/ambient looping
         recognition.onend   = () => { if (!captured && finalText === "") setTimeout(() => recognition.start(), 300); };
         recognitionRef.current = recognition;
         setTranscript("");
