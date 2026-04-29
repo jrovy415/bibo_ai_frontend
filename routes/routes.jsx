@@ -1,7 +1,10 @@
 import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
+import HiClick from "../src/HiClick";
+import GameClick from "../src/GameClick";
 import Login from "../src/Login";
 import Dashboard from "../src/Dashboard";
 import StudentLayout from "../src/layouts/StudentLayout";
+import LockedScreen from "../src/student/LockedScreen";
 
 import Animal from "../src/Animal";
 import Default from "../src/DefaultHome";
@@ -51,17 +54,23 @@ const AuthRedirect = ({ children }) => {
     if (isTeacherAuthenticated()) {
         return <Navigate to="/dashboard" replace />;
     }
-
     if (isStudentAuthenticated()) {
         return <Navigate to="/student" replace />;
     }
-
     return children;
 };
 
 const router = createBrowserRouter([
     {
         path: "/",
+        element: <HiClick />,
+    },
+    {
+        path: "/gameclick",
+        element: <GameClick />,
+    },
+    {
+        path: "/login",
         element: (
             <AuthRedirect>
                 <Login />
@@ -76,6 +85,11 @@ const router = createBrowserRouter([
             </ProtectedRoute>
         ),
     },
+    // ── Locked account screen ─────────────────────────────────────────────
+    {
+        path: "/locked",
+        element: <LockedScreen />,
+    },
     {
         path: "/student",
         element: (
@@ -87,21 +101,19 @@ const router = createBrowserRouter([
             { path: "", element: <StudentDashboard /> },
             { path: "quiz", element: <StudentQuiz /> },
             { path: "finished-quiz", element: <StudentFinishedQuiz /> },
-            // { path: "weather", element: <Weather /> },
-            // { path: "intro_letters", element: <IntroLetters /> },
-            // { path: "letter_sp", element: <LetterSp /> },
-            // { path: "letters", element: <Letters /> },
-            // { path: "intro_food", element: <IntroFood /> },
-            // { path: "food_sp", element: <FoodSp /> },
-            // { path: "food_act", element: <FoodAct /> },
-            // { path: "intro_emo", element: <IntroEmo /> },
-            // { path: "emo_sp", element: <EmoSp /> },
-            // { path: "emo_act", element: <EmoAct /> },
-            { path: "logout", element: <StudentLogout /> },
         ],
     },
+    // ✅ FIXED: Inilabas sa labas ng StudentProtectedRoute
+    // Dahil kapag tinanggal na ang token bago mag-navigate("/student/logout"),
+    // ang StudentProtectedRoute ay nag-re-redirect sa "/" (HiClick) kasi wala nang token.
+    // Ngayon, direkta na ang /student/logout at hindi nangangailangan ng token.
     {
-        path: "/speech", element: <SpeechToText />
+        path: "/student/logout",
+        element: <StudentLogout />,
+    },
+    {
+        path: "/speech",
+        element: <SpeechToText />
     }
 ]);
 

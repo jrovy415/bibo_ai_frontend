@@ -1,6 +1,6 @@
 // src/StudentLogout.jsx
 import React, { useEffect } from "react";
-import axios from "axios";
+import axios from "../plugins/axios";
 import { useNavigate } from "react-router-dom";
 
 export default function StudentLogout() {
@@ -30,7 +30,7 @@ export default function StudentLogout() {
         localStorage.removeItem("APP_STUDENT");
 
         // Redirect to login
-        navigate("/", { replace: true });
+        navigate("/login", { replace: true });
       }
     };
 

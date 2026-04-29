@@ -1,0 +1,88 @@
+/* === StudentFinishedQuiz.css === */
+
+/* Allow the whole page to scroll properly */
+html,
+body,
+#root {
+    height: auto !important;
+    min-height: 100%;
+    overflow-y: auto !important;
+    overflow-x: hidden;
+    margin: 0;
+    padding: 0;
+    background-color: #f0f8ff;
+}
+
+/* Main container for the quiz result page */
+.finished-quiz-container {
+    width: 100%;
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 30px;
+    background-image: url("/3436801_20252.jpg");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    overflow-y: auto;
+}
+
+/* Headings */
+.finished-quiz-container h1 {
+    font-size: 2.5rem;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.finished-quiz-container p {
+    font-size: 1.1rem;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+/* Card styling */
+.finished-quiz-card {
+    width: 90%;
+    max-width: 600px;
+    text-align: center;
+    padding: 30px;
+    border-radius: 20px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    background-color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 20px;
+}
+
+/* Table wrapper */
+.finished-quiz-table {
+    width: 90%;
+    max-width: 800px;
+    margin-bottom: 30px;
+    background-color: rgba(255, 255, 255, 0.9);
+    border-radius: 10px;
+    padding: 10px;
+}
+
+/* Buttons layout */
+.finished-quiz-buttons {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 40px;
+}
+
+/* Scrollbar styling (optional, just for nicer look) */
+.finished-quiz-container::-webkit-scrollbar {
+    width: 10px;
+}
+
+.finished-quiz-container::-webkit-scrollbar-thumb {
+    background: rgba(100, 100, 100, 0.4);
+    border-radius: 10px;
+}
+
+.finished-quiz-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(100, 100, 100, 0.6);
+}
