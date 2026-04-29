@@ -172,14 +172,16 @@ const ProgressStars = ({ current, total }) => (
     </div>
 );
 
-const CountdownTimer = ({ totalSeconds, onExpire }) => {
+const CountdownTimer = ({ totalSeconds, onExpire, paused }) => {
     const [secondsLeft, setSecondsLeft] = useState(totalSeconds);
     const intervalRef = useRef(null);
 
     useEffect(() => { setSecondsLeft(totalSeconds); }, [totalSeconds]);
 
     useEffect(() => {
-        if (secondsLeft <= 0) { clearInterval(intervalRef.current); onExpire?.(); return; }
+        clearInterval(intervalRef.current);
+        if (paused) return;
+        if (secondsLeft <= 0) { onExpire?.(); return; }
         intervalRef.current = setInterval(() => {
             setSecondsLeft(prev => {
                 if (prev <= 1) { clearInterval(intervalRef.current); onExpire?.(); return 0; }
@@ -187,7 +189,7 @@ const CountdownTimer = ({ totalSeconds, onExpire }) => {
             });
         }, 1000);
         return () => clearInterval(intervalRef.current);
-    }, [totalSeconds]);
+    }, [totalSeconds, paused]);
 
     const mins   = Math.floor(secondsLeft / 60);
     const secs   = secondsLeft % 60;
@@ -447,6 +449,7 @@ const StudentQuiz = () => {
     const [ttsEnabled,     setTtsEnabled]     = useState(true);
     const [timerKey,       setTimerKey]       = useState(0);
     const [timerStarted,   setTimerStarted]   = useState(false);
+    const [timerPaused,    setTimerPaused]    = useState(true);
     const [autoNextCountdown, setAutoNextCountdown] = useState(null);
 
     const timerExpiredRef    = useRef(false);
@@ -523,7 +526,12 @@ const StudentQuiz = () => {
         recognition.continuous     = true;
         recognition.interimResults = true;
         recognition.lang           = "en-US";
-        recognition.onstart  = () => setRecStatus("listening");
+        recognition.onstart  = () => {
+            setRecStatus("listening");
+            // Timer starts on first mic ready, resumes on each question
+            setTimerStarted(true);
+            setTimerPaused(false);
+        };
         recognition.onresult = (event) => {
             // Collect every final result from this session
             let sessionFinals = "";
@@ -552,6 +560,7 @@ const StudentQuiz = () => {
                     captured = true;
                     recognition.stop();
                     setRecStatus("idle");
+                    setTimerPaused(true); // pause timer while auto-next countdown runs
                     setShowConfetti(true);
                     setTimeout(() => setShowConfetti(false), 3000);
                     const capturedText = finalText;
@@ -579,7 +588,7 @@ const StudentQuiz = () => {
             bg.loop = true; bg.volume = 0.09; bg.play().catch(() => {});
             backgroundAudioRef.current = bg;
         }
-        setStarted(true); setTimerStarted(true); setTimerKey(k => k + 1);
+        setStarted(true); setTimerKey(k => k + 1);
         try {
             const res = await axios.post("/quiz-attempts", { quiz_id: quiz.id, started_at: new Date().toISOString(), score: 0 });
             const id = res.data.data.id;
@@ -868,7 +877,7 @@ const percentage = count > 0 ? totalPct / count : 0;
                 </div>
 
                 {timerStarted && totalSeconds > 0 && (
-                    <CountdownTimer key={timerKey} totalSeconds={totalSeconds} onExpire={handleTimerExpire} />
+                    <CountdownTimer key={timerKey} totalSeconds={totalSeconds} onExpire={handleTimerExpire} paused={timerPaused} />
                 )}
 
                 <div style={{ zIndex:2, width:"100%", maxWidth:640, marginBottom:4 }}>
