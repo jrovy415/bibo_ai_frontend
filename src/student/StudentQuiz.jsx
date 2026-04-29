@@ -514,34 +514,62 @@ const StudentQuiz = () => {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         const recognition = new SpeechRecognition();
         let captured = false;
+        let silenceTimer = null;
+        // Accumulates final results across recognition restarts.
+        // On Android Chrome, isFinal fires after each word (not the full sentence),
+        // so we must collect all finals before triggering capture.
+        let finalText = "";
+
         recognition.continuous     = true;
         recognition.interimResults = true;
         recognition.lang           = "en-US";
         recognition.onstart  = () => setRecStatus("listening");
         recognition.onresult = (event) => {
-            const last = event.results[event.results.length - 1];
-            const text = last[0].transcript.trim();
-            if (text && last.isFinal && !captured) {
-                captured = true;
-                setTranscript(text);
-                recognition.stop();
-                setRecStatus("idle");
-                setShowConfetti(true);
-                setTimeout(() => setShowConfetti(false), 3000);
-                let count = 3;
-                setAutoNextCountdown(count);
-                const countInterval = setInterval(() => {
-                    count -= 1;
-                    if (count <= 0) { clearInterval(countInterval); setAutoNextCountdown(null); autoNextRef.current?.(text); }
-                    else { setAutoNextCountdown(count); }
-                }, 1000);
+            // Collect every final result from this session
+            let sessionFinals = "";
+            for (let i = 0; i < event.results.length; i++) {
+                if (event.results[i].isFinal) {
+                    sessionFinals += event.results[i][0].transcript + " ";
+                }
             }
+            // Current interim (not yet final)
+            const lastResult = event.results[event.results.length - 1];
+            const interim = !lastResult.isFinal ? lastResult[0].transcript : "";
+
+            // Append new finals to accumulator
+            if (sessionFinals.trim()) {
+                finalText = (finalText + " " + sessionFinals).trim();
+            }
+
+            // Show accumulated finals + current interim in real time
+            const displayText = (finalText + (interim ? " " + interim : "")).trim();
+            if (displayText) setTranscript(displayText);
+
+            // Reset the silence timer on every new speech input
+            if (silenceTimer) clearTimeout(silenceTimer);
+            silenceTimer = setTimeout(() => {
+                if (!captured && finalText) {
+                    captured = true;
+                    recognition.stop();
+                    setRecStatus("idle");
+                    setShowConfetti(true);
+                    setTimeout(() => setShowConfetti(false), 3000);
+                    const capturedText = finalText;
+                    let count = 3;
+                    setAutoNextCountdown(count);
+                    const countInterval = setInterval(() => {
+                        count -= 1;
+                        if (count <= 0) { clearInterval(countInterval); setAutoNextCountdown(null); autoNextRef.current?.(capturedText); }
+                        else { setAutoNextCountdown(count); }
+                    }, 1000);
+                }
+            }, 2000); // wait 2 s of silence before capturing the full answer
         };
         recognition.onerror = () => setRecStatus("error");
-        recognition.onend   = () => { if (!captured) setTimeout(() => recognition.start(), 500); };
+        recognition.onend   = () => { if (!captured) setTimeout(() => recognition.start(), 300); };
         recognitionRef.current = recognition;
         setTranscript("");
-        return () => { captured = true; recognition.stop(); };
+        return () => { captured = true; if (silenceTimer) clearTimeout(silenceTimer); recognition.stop(); };
     }, [currentIndex, started, currentQuestion]);
 
     const startQuiz = async () => {

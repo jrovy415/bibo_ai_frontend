@@ -1,6 +1,6 @@
 // src/StudentLogout.jsx
 import React, { useEffect } from "react";
-import axios from "axios";
+import axios from "../plugins/axios";
 import { useNavigate } from "react-router-dom";
 
 export default function StudentLogout() {

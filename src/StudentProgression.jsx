@@ -22,7 +22,6 @@ const DIFF_ORDER = [
   "Medium", "MediumPostTest",
   "Hard", "HardPostTest",
   "Expert", "ExpertPostTest",
-  "PostTest",
 ];
 
 // ✅ FIXED: Labels for all PostTest variants
@@ -36,7 +35,6 @@ const DIFF_LABELS = {
   HardPostTest:   "Developing PT",
   Expert:         "Grade Ready",
   ExpertPostTest: "Grade Ready PT",
-  PostTest:       "Post-Test",
 };
 
 // ✅ Full labels for modal detail view
@@ -50,7 +48,6 @@ const DIFF_LABELS_FULL = {
   HardPostTest:   "Developing Reader Post-Test",
   Expert:         "Grade Ready Reader",
   ExpertPostTest: "Grade Ready Post-Test",
-  PostTest:       "Post-Test",
 };
 
 // ✅ FIXED: Colors for all PostTest variants
@@ -64,7 +61,6 @@ const DIFF_COLORS = {
   HardPostTest:   { bg:"#F3E5F5", text:"#6A1B9A", border:"#CE93D8" },
   Expert:         { bg:"#EDE7F6", text:"#4A148C", border:"#B39DDB" },
   ExpertPostTest: { bg:"#E8EAF6", text:"#311B92", border:"#9FA8DA" },
-  PostTest:       { bg:"#F1F8E9", text:"#33691E", border:"#AED581" },
 };
 
 // ✅ FIXED: Emojis for all PostTest variants
@@ -78,7 +74,6 @@ const DIFF_EMOJIS = {
   HardPostTest:   "📋",
   Expert:         "🏆",
   ExpertPostTest: "📋",
-  PostTest:       "🎓",
 };
 
 /* ── Styles ─────────────────────────────────────────────────────────────── */
