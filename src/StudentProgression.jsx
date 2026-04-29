@@ -256,12 +256,25 @@ const formatDate = (dt) => {
 
 /* ── Student Modal ───────────────────────────────────────────────────────── */
 function StudentModal({ student, onClose }) {
-  if (!student) return null;
-  const { nickname, grade_level, section, assigned_level, journey, improvement, overall_avg } = student;
+  const [selectedTakeIdx, setSelectedTakeIdx] = useState(null);
 
-  // ✅ FIXED: Use Introduction as pretest and any PostTest as final
+  useEffect(() => {
+    if (student?.takes?.length) {
+      setSelectedTakeIdx(student.takes.length - 1); // default to latest take
+    }
+  }, [student]);
+
+  if (!student) return null;
+  const { nickname, grade_level, section, assigned_level, takes } = student;
+
+  const hasTakes    = takes && takes.length > 0;
+  const activeTake  = hasTakes ? (takes[selectedTakeIdx] ?? takes[takes.length - 1]) : null;
+  const journey     = activeTake?.journey     ?? student.journey     ?? {};
+  const improvement = activeTake?.improvement ?? student.improvement ?? null;
+  const overall_avg = activeTake?.overall_avg ?? student.overall_avg ?? null;
+
   const preP  = journey?.Introduction?.pct ?? null;
-  const postP = journey?.PostTest?.pct ?? journey?.ExpertPostTest?.pct ?? journey?.HardPostTest?.pct ?? journey?.MediumPostTest?.pct ?? journey?.EasyPostTest?.pct ?? null;
+  const postP = journey?.ExpertPostTest?.pct ?? journey?.HardPostTest?.pct ?? journey?.MediumPostTest?.pct ?? journey?.EasyPostTest?.pct ?? journey?.PostTest?.pct ?? null;
 
   return (
     <Modal
@@ -274,7 +287,7 @@ function StudentModal({ student, onClose }) {
     >
       <div style={{ padding:"24px 24px 20px" }}>
         {/* Header */}
-        <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:20 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:16 }}>
           <div style={{
             width:52, height:52, borderRadius:14,
             background:`linear-gradient(135deg,${C.primary},${C.secondary})`,
@@ -296,6 +309,34 @@ function StudentModal({ student, onClose }) {
           </div>
         </div>
 
+        {/* Take selector — only shown when student has multiple takes */}
+        {takes && takes.length > 1 && (
+          <div style={{ display:"flex", gap:8, marginBottom:16, flexWrap:"wrap" }}>
+            {takes.map((take, idx) => {
+              const isActive = idx === selectedTakeIdx;
+              return (
+                <button
+                  key={idx}
+                  onClick={() => setSelectedTakeIdx(idx)}
+                  style={{
+                    padding:"7px 20px",
+                    borderRadius:50,
+                    border:`2px solid ${isActive ? C.primary : "#E2E8F0"}`,
+                    background: isActive ? C.primary : "white",
+                    color: isActive ? "white" : C.muted,
+                    fontWeight:700,
+                    cursor:"pointer",
+                    fontSize:13,
+                    transition:"all 0.15s ease",
+                  }}
+                >
+                  Take {take.take_number}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         {/* Improvement banner */}
         {preP !== null && postP !== null && (
           <div className="modal-improvement-banner" style={{
@@ -312,7 +353,7 @@ function StudentModal({ student, onClose }) {
           </div>
         )}
 
-        {/* ✅ FIXED: Level-by-level journey with all PostTest variants */}
+        {/* Level-by-level journey */}
         <div style={{ fontWeight:700, fontSize:13, color:C.muted, marginBottom:12, textTransform:"uppercase", letterSpacing:1 }}>
           Reading Journey
         </div>
