@@ -575,7 +575,8 @@ const StudentQuiz = () => {
             }, 2000); // wait 2 s of silence before capturing the full answer
         };
         recognition.onerror = () => setRecStatus("error");
-        recognition.onend   = () => { if (!captured) setTimeout(() => recognition.start(), 300); };
+        // Only restart if nothing has been heard yet — prevents looping/echo duplicates
+        recognition.onend   = () => { if (!captured && finalText === "") setTimeout(() => recognition.start(), 300); };
         recognitionRef.current = recognition;
         setTranscript("");
         return () => { captured = true; if (silenceTimer) clearTimeout(silenceTimer); recognition.stop(); };
