@@ -422,10 +422,11 @@ const StudentFinishedQuiz = () => {
       try {
         const res = await axios.get(`/quiz-attempts/${attemptId}`);
         const { quiz, answers, score } = res.data.data;
+        if (!quiz) { navigate("/student", { replace: true }); return; }
         setQuizData(quiz); setAnswers(answers??[]); setScore(score??(answers??[]).filter(a=>a.is_correct).length);
-      } catch(err) { console.error(err); } finally { setLoading(false); }
+      } catch(err) { console.error(err); navigate("/student", { replace: true }); } finally { setLoading(false); }
     };
-    if (attemptId) fetchQuizResult(); else setLoading(false);
+    if (attemptId) fetchQuizResult(); else { setLoading(false); navigate("/student", { replace: true }); }
   }, [attemptId]);
 
   // ✅ Fetch journey attempts for ALL PostTest difficulties (not just final PostTest)

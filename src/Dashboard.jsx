@@ -3,7 +3,7 @@ import { Layout, Menu, Button, Typography, Spin, Avatar, Tooltip, Badge } from '
 import {
   UserOutlined, TeamOutlined, BookOutlined, BarChartOutlined,
   LogoutOutlined, MenuUnfoldOutlined, MenuFoldOutlined,
-  BellOutlined, SettingOutlined, LineChartOutlined, SmileOutlined, HomeOutlined,
+  SettingOutlined, LineChartOutlined, SmileOutlined, HomeOutlined,
 } from '@ant-design/icons';
 import { useAuth } from "../composables/useAuth";
 import { useApi } from "../composables/useApi";
@@ -378,10 +378,6 @@ const Dashboard = () => {
   const [showHome,      setShowHome]      = useState(true);
   const [collapsed,     setCollapsed]     = useState(false);
   const [darkMode,      setDarkMode]      = useState(() => localStorage.getItem('bibo_dark') === 'true');
-  const [notifications, setNotifications] = useState([]);
-  const [notifOpen,     setNotifOpen]     = useState(false);
-  const [unreadCount,   setUnreadCount]   = useState(0);
-  const [lastSeen,      setLastSeen]      = useState(() => localStorage.getItem('bibo_notif_seen') || new Date(0).toISOString());
   const [selectedKeys,  setSelectedKeys]  = useState(['students']);
   const [endpoint,      setEndpoint]      = useState('/students');
   const [showCreate,    setShowCreate]    = useState(false);
@@ -394,6 +390,7 @@ const Dashboard = () => {
   const [pagination,    setPagination]    = useState(null);
   const [items,         setItems]         = useState([]);
   const [filteredItems, setFilteredItems] = useState([]);
+  const [refreshKey,    setRefreshKey]    = useState(0);
   const [loading,       setLoading]       = useState(false);
 
   const { authUser, logout, getUser } = useAuth();
@@ -408,30 +405,6 @@ const Dashboard = () => {
     document.body.setAttribute('data-dark', darkMode ? '1' : '0');
   }, [darkMode]);
 
-  useEffect(() => {
-    const fetchNotifs = async () => {
-      try {
-        const res = await axios.get('/notifications');
-        const data = res.data?.data || [];
-        setNotifications(data);
-        const newCount = data.filter(n => n.time > lastSeen).length;
-        setUnreadCount(newCount);
-      } catch(e) { console.error(e); }
-    };
-    fetchNotifs();
-    const interval = setInterval(fetchNotifs, 15000);
-    return () => clearInterval(interval);
-  }, [lastSeen]);
-
-  const handleOpenNotif = () => {
-    setNotifOpen(o => !o);
-    if (!notifOpen) {
-      const now = new Date().toISOString();
-      setLastSeen(now);
-      localStorage.setItem('bibo_notif_seen', now);
-      setUnreadCount(0);
-    }
-  };
 
   const fetchData = async (page = 1, size = 10) => {
     if (!endpoint) return;
@@ -456,7 +429,7 @@ const Dashboard = () => {
 
   const handlePageChange     = (p)        => setCurrentPage(p);
   const handlePageSizeChange = (s, p = 1) => { setPageSize(s); setCurrentPage(p); };
-  useEffect(() => { if (endpoint) fetchData(currentPage, pageSize); }, [endpoint, currentPage, pageSize]);
+  useEffect(() => { if (endpoint) fetchData(currentPage, pageSize); }, [endpoint, currentPage, pageSize, refreshKey]);
 
   const getQuestionTypeOptions = async () => {
     try {
@@ -468,6 +441,7 @@ const Dashboard = () => {
   useEffect(() => {
     const k = selectedKeys[0];
     setCurrentPage(1); setPageSize(10); setPagination(null); setItems([]); setFilteredItems([]);
+    setRefreshKey(r => r + 1);
     switch(k) {
       case "students":    setEndpoint("/students");      setShowCreate(false); setShowView(true);  setShowEdit(true);  setShowDelete(true);  break;
       case "teachers":    setEndpoint("/users");         setShowCreate(true);  setShowView(true);  setShowEdit(true);  setShowDelete(true);  break;
@@ -767,49 +741,6 @@ const Dashboard = () => {
                 {darkMode ? '☀️ Light' : '🌙 Dark'}
               </button>
 
-              <div style={{ position:'relative' }}>
-                <button onClick={handleOpenNotif} style={{ background:notifOpen?'rgba(108,99,255,0.2)':'rgba(108,99,255,0.1)', border:'1.5px solid rgba(108,99,255,0.2)', borderRadius:10, padding:'6px 12px', cursor:'pointer', display:'flex', alignItems:'center', gap:5, fontFamily:"'Plus Jakarta Sans',sans-serif", fontSize:12, fontWeight:600, color:C.primary }}>
-                  🔔
-                  {unreadCount > 0 && (
-                    <span style={{ background:'#FF6584', color:'white', borderRadius:99, fontSize:10, fontWeight:800, padding:'0px 5px', minWidth:16, textAlign:'center', lineHeight:'16px' }}>
-                      {unreadCount > 9 ? '9+' : unreadCount}
-                    </span>
-                  )}
-                </button>
-
-                {notifOpen && (
-                  <div style={{ position:'absolute', top:'calc(100% + 8px)', right:0, width:340, background:darkMode?'#1A1830':'white', border:`1px solid ${darkMode?'#2D2A50':'#E8E9FF'}`, borderRadius:16, boxShadow:'0 12px 40px rgba(0,0,0,0.18)', zIndex:1000, overflow:'hidden' }}>
-                    <div style={{ padding:'14px 16px', borderBottom:`1px solid ${darkMode?'#2D2A50':'#F0F2FF'}`, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-                      <span style={{ fontWeight:700, fontSize:14, color:darkMode?'#D0CFEE':C.text }}>🔔 Notifications</span>
-                      <span style={{ fontSize:11, color:C.muted }}>Last 30 min</span>
-                    </div>
-                    <div style={{ maxHeight:360, overflowY:'auto' }}>
-                      {notifications.length === 0 ? (
-                        <div style={{ padding:'28px 16px', textAlign:'center', color:C.muted, fontSize:13 }}>
-                          <div style={{ fontSize:32, marginBottom:8 }}>🔕</div>
-                          No recent notifications
-                        </div>
-                      ) : notifications.map((n, i) => (
-                        <div key={n.id} style={{ padding:'12px 16px', borderBottom:`0.5px solid ${darkMode?'#2D2A50':'#F0F2FF'}`, display:'flex', gap:10, alignItems:'flex-start', background:i%2===0?(darkMode?'#1A1830':'white'):(darkMode?'#1E1C35':'#FAFBFF') }}>
-                          <div style={{ width:32, height:32, borderRadius:10, background:`${n.color}18`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, flexShrink:0 }}>
-                            {n.icon}
-                          </div>
-                          <div style={{ flex:1, minWidth:0 }}>
-                            <div style={{ fontSize:12, fontWeight:700, color:darkMode?'#D0CFEE':C.text, marginBottom:2 }}>{n.title}</div>
-                            <div style={{ fontSize:11, color:C.muted, lineHeight:1.4 }}>{n.message}</div>
-                            <div style={{ fontSize:10, color:`${C.muted}88`, marginTop:4 }}>
-                              {new Date(n.time).toLocaleTimeString('en-PH',{ hour:'2-digit', minute:'2-digit' })}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <div style={{ padding:'10px 16px', borderTop:`1px solid ${darkMode?'#2D2A50':'#F0F2FF'}`, textAlign:'center', fontSize:11, color:C.muted }}>
-                      Updates every 15 seconds
-                    </div>
-                  </div>
-                )}
-              </div>
 
               <div style={{ padding:'6px 14px', borderRadius:10, background:'linear-gradient(135deg,#6C63FF,#43D9AD)', color:'white', fontSize:12, fontWeight:700, fontFamily:"'Plus Jakarta Sans',sans-serif" }}>🤖 BiboAI</div>
             </div>
