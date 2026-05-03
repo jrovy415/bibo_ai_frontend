@@ -691,6 +691,7 @@ const StudentQuiz = () => {
                 answers: finalAnswers ?? answersRef.current,
                 isPostTest,
                 quizDifficulty: quiz?.difficulty,
+                quizSnapshot: quiz,
             }
         });
     };
@@ -936,16 +937,16 @@ const StudentQuiz = () => {
                     )}
                 </div>
 
-                <button
-                    className="kid-btn" onClick={handleNext} disabled={isNextDisabled}
-                    style={{ zIndex:2, background: isNextDisabled ? "linear-gradient(135deg,#ccc,#aaa)" : isPostTest ? "linear-gradient(135deg,#a9e34b,#2f9e44)" : "linear-gradient(135deg,#ff9f43,#ff6b6b)", color:"white", padding:"14px 40px", fontSize:"1.2rem", boxShadow: isNextDisabled ? "none" : isPostTest ? "0 6px 0 #1e7a34, 0 10px 24px rgba(46,164,68,0.45)" : "0 6px 0 #c0392b, 0 10px 24px rgba(255,107,107,0.45)", marginBottom:16, opacity: transcript ? 0.6 : 1 }}
-                >
-                    {isSpeaking               ? "🔊 Speaking…"  :
-                     recStatus === "listening" ? "🎤 Listening…" :
-                     transcript
-                        ? (currentIndex === questions.length - 1 ? (isPostTest ? "🎓 Finish Now!" : "🏆 Finish Now!") : "⏭️ Skip")
-                        : (currentIndex === questions.length - 1 ? (isPostTest ? "🎓 Finish!" : "🏆 Finish Quiz!") : "⏭️ Skip")}
-                </button>
+                {!transcript && (
+                    <button
+                        className="kid-btn" onClick={handleNext} disabled={isNextDisabled}
+                        style={{ zIndex:2, background: isNextDisabled ? "linear-gradient(135deg,#ccc,#aaa)" : isPostTest ? "linear-gradient(135deg,#a9e34b,#2f9e44)" : "linear-gradient(135deg,#ff9f43,#ff6b6b)", color:"white", padding:"14px 40px", fontSize:"1.2rem", boxShadow: isNextDisabled ? "none" : isPostTest ? "0 6px 0 #1e7a34, 0 10px 24px rgba(46,164,68,0.45)" : "0 6px 0 #c0392b, 0 10px 24px rgba(255,107,107,0.45)", marginBottom:16 }}
+                    >
+                        {isSpeaking               ? "🔊 Speaking…"  :
+                         recStatus === "listening" ? "🎤 Listening…" :
+                         currentIndex === questions.length - 1 ? (isPostTest ? "🎓 Finish!" : "🏆 Finish Quiz!") : "⏭️ Skip"}
+                    </button>
+                )}
 
                 <div style={{ zIndex:2, display:"flex", gap:16, fontSize:28, animation:"bounce 2s ease infinite" }}>🐣 🌈 ⭐ 🎯 🎊</div>
             </div>

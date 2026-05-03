@@ -3,72 +3,29 @@ import HiClick from "../src/HiClick";
 import GameClick from "../src/GameClick";
 import Login from "../src/Login";
 import Dashboard from "../src/Dashboard";
-import StudentLayout from "../src/layouts/StudentLayout";
-import LockedScreen from "../src/student/LockedScreen";
-
-import Animal from "../src/Animal";
-import Default from "../src/DefaultHome";
-import Weather from "../src/Weather";
-import IntroLetters from "../src/IntroLetters";
-import LetterSp from "../src/LetterSp";
-import Letters from "../src/Letters";
-import IntroFood from "../src/IntroFood";
-import FoodSp from "../src/FoodSp";
-import FoodAct from "../src/FoodAct";
-import IntroEmo from "../src/IntroEmo";
-import EmoSp from "../src/EmoSp";
-import EmoAct from "../src/EmoAct";
-import StudentLogout from "../src/StudentLogout";
-import StudentDashboard from "../src/student/StudentDashboard";
-import StudentQuiz from "../src/student/StudentQuiz";
 import SpeechToText from "../src/components/SpeechToText";
-import StudentFinishedQuiz from "../src/student/StudentFinishedQuiz";
 
-// check teacher login
-const isTeacherAuthenticated = () => {
-    return !!localStorage.getItem("APP_TOKEN");
-};
+import studentRoutes from "./studentRoutes";
 
-// check student login
-const isStudentAuthenticated = () => {
-    return !!localStorage.getItem("APP_STUDENT_TOKEN");
-};
+// ── Auth guards ───────────────────────────────────────────────────────────────
+const isTeacherAuthenticated = () => !!localStorage.getItem("APP_TOKEN");
+const isStudentAuthenticated = () => !!localStorage.getItem("APP_STUDENT_TOKEN");
 
-// general check for *any* login
-const isAuthenticated = () => {
-    return isTeacherAuthenticated() || isStudentAuthenticated();
-};
+const ProtectedRoute = ({ children }) =>
+    isTeacherAuthenticated() ? children : <Navigate to="/" replace />;
 
-// protect teacher routes
-const ProtectedRoute = ({ children }) => {
-    return isTeacherAuthenticated() ? children : <Navigate to="/" replace />;
-};
-
-// protect student routes
-const StudentProtectedRoute = ({ children }) => {
-    return isStudentAuthenticated() ? children : <Navigate to="/" replace />;
-};
-
-// redirect if already logged in as teacher
+// Redirect already-logged-in users away from the login page
 const AuthRedirect = ({ children }) => {
-    if (isTeacherAuthenticated()) {
-        return <Navigate to="/dashboard" replace />;
-    }
-    if (isStudentAuthenticated()) {
-        return <Navigate to="/student" replace />;
-    }
+    if (isTeacherAuthenticated()) return <Navigate to="/dashboard" replace />;
+    if (isStudentAuthenticated()) return <Navigate to="/student" replace />;
     return children;
 };
 
+// ── Routes ────────────────────────────────────────────────────────────────────
 const router = createBrowserRouter([
-    {
-        path: "/",
-        element: <HiClick />,
-    },
-    {
-        path: "/gameclick",
-        element: <GameClick />,
-    },
+    // Public
+    { path: "/", element: <HiClick /> },
+    { path: "/gameclick", element: <GameClick /> },
     {
         path: "/login",
         element: (
@@ -77,6 +34,8 @@ const router = createBrowserRouter([
             </AuthRedirect>
         ),
     },
+
+    // Teacher (protected)
     {
         path: "/dashboard",
         element: (
@@ -85,36 +44,12 @@ const router = createBrowserRouter([
             </ProtectedRoute>
         ),
     },
-    // ── Locked account screen ─────────────────────────────────────────────
-    {
-        path: "/locked",
-        element: <LockedScreen />,
-    },
-    {
-        path: "/student",
-        element: (
-            <StudentProtectedRoute>
-                <StudentLayout />
-            </StudentProtectedRoute>
-        ),
-        children: [
-            { path: "", element: <StudentDashboard /> },
-            { path: "quiz", element: <StudentQuiz /> },
-            { path: "finished-quiz", element: <StudentFinishedQuiz /> },
-        ],
-    },
-    // ✅ FIXED: Inilabas sa labas ng StudentProtectedRoute
-    // Dahil kapag tinanggal na ang token bago mag-navigate("/student/logout"),
-    // ang StudentProtectedRoute ay nag-re-redirect sa "/" (HiClick) kasi wala nang token.
-    // Ngayon, direkta na ang /student/logout at hindi nangangailangan ng token.
-    {
-        path: "/student/logout",
-        element: <StudentLogout />,
-    },
-    {
-        path: "/speech",
-        element: <SpeechToText />
-    }
+
+    // Student routes (see studentRoutes.jsx)
+    ...studentRoutes,
+
+    // Dev / utility
+    { path: "/speech", element: <SpeechToText /> },
 ]);
 
 export default function Router() {

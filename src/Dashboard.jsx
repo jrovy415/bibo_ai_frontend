@@ -434,7 +434,9 @@ const Dashboard = () => {
   const getQuestionTypeOptions = async () => {
     try {
       const r = await axios.get('/question-types', { params: { all: true } });
-      setQuestionTypes(r.data.data.map(i => ({ label: i.label, value: i.id })));
+      setQuestionTypes(r.data.data
+        .filter(i => i.name === 'reading')
+        .map(i => ({ label: i.label, value: i.id })));
     } catch { setQuestionTypes([]); }
   };
 

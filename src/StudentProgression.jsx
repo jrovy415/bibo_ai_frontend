@@ -445,12 +445,12 @@ export default function StudentProgression() {
   const gradeOptions   = [...new Set(data.map(s => s.grade_level).filter(Boolean))];
   const sectionOptions = [...new Set(data.map(s => s.section).filter(Boolean))];
 
-  const totalStudents  = data.length;
-  const improved       = data.filter(s => s.improvement !== null && s.improvement > 0).length;
-  const avgImprovement = useMemo(() => {
-    const vals = data.map(s => s.improvement).filter(v => v !== null);
-    return vals.length > 0 ? Math.round(vals.reduce((a,b) => a+b, 0) / vals.length) : null;
-  }, [data]);
+  const totalStudents    = data.length;
+  const improved         = data.filter(s => s.improvement !== null && s.improvement > 0).length;
+  const needsImprovement = data.filter(s =>
+    (s.improvement !== null && s.improvement < 0) ||
+    (s.overall_avg !== null && s.overall_avg < 50)
+  ).length;
 
   // ✅ FIXED: Count students who completed Pre-Test AND any PostTest
   const completedAll = data.filter(s =>
@@ -508,10 +508,8 @@ export default function StudentProgression() {
             <div className="prog-summary-label">Students Improved</div>
           </div>
           <div className="prog-summary-card">
-            <div className="prog-summary-val" style={{ color: avgImprovement >= 0 ? "#15803D" : "#BE123C" }}>
-              {avgImprovement !== null ? `${avgImprovement >= 0 ? "+" : ""}${avgImprovement}%` : "—"}
-            </div>
-            <div className="prog-summary-label">Avg Improvement</div>
+            <div className="prog-summary-val" style={{ color:"#EF4444" }}>{needsImprovement}</div>
+            <div className="prog-summary-label">Needs Improvement</div>
           </div>
         </div>
 

@@ -101,7 +101,8 @@ axiosRequest.interceptors.response.use(
       url.endsWith("/quizzes") ||
       url.endsWith("/quizzes/get-quiz") ||
       url.includes("/answers") ||
-      url.includes("/quiz-attempts")
+      url.includes("/quiz-attempts") ||
+      url.includes("/quiz-feedbacks")
     ) {
       return Promise.reject(error);
     }
