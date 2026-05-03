@@ -179,22 +179,6 @@ const LMSAnalyticsDashboard = ({ data, onFilterChange }) => {
       quiz:    item.quiz?.title,
     }));
 
-  const scoringMethodData = useMemo(() => {
-    const map = {};
-    filteredData.forEach(item => {
-      const title = item.quiz?.title || "Unknown";
-      const diff  = item.quiz?.difficulty || "";
-      if (!map[title]) map[title] = { title, difficulty: diff, wordByWord: 0, exactMatch: 0, total: 0, totalScore: 0, count: 0 };
-      map[title].totalScore += item.score ?? 0;
-      map[title].count++;
-      (item.quiz?.questions || []).forEach(q => {
-        map[title].total++;
-        if (q.use_word_scoring) map[title].wordByWord++;
-        else                    map[title].exactMatch++;
-      });
-    });
-    return Object.values(map);
-  }, [filteredData]);
 
   const lbMap = {};
   filteredData.forEach(item => {
@@ -338,58 +322,6 @@ const LMSAnalyticsDashboard = ({ data, onFilterChange }) => {
         </Col>
       </Row>
 
-      {/* Scoring Method Breakdown */}
-      <Card title={<span style={{ fontWeight: 700, color: textColor }}>🔤 Scoring Method Breakdown Per Quiz</span>} bordered={false} style={cardStyle}>
-        <Table
-          dataSource={scoringMethodData}
-          rowKey="title"
-          pagination={false}
-          size="middle"
-          columns={[
-            {
-              title: "Quiz", dataIndex: "title", key: "title",
-              render: v => <span style={{ fontWeight: 600, color: textColor }}>{v}</span>,
-            },
-            {
-              title: "Level", dataIndex: "difficulty", key: "difficulty",
-              render: v => <DiffTag difficulty={v} />,
-            },
-            {
-              title: "🔤 Word-by-Word", dataIndex: "wordByWord", key: "wordByWord",
-              render: (v, row) => (
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontWeight: 700, color: "#1890ff", minWidth: 20 }}>{v}</span>
-                  {row.total > 0 && <Progress percent={Math.round((v / row.total) * 100)} size="small" strokeColor="#1890ff" style={{ width: 70, margin: 0 }} showInfo={false} trailColor={dark ? '#2D2A50' : '#f0f0f0'} />}
-                  <span style={{ fontSize: 11, color: mutedColor }}>{row.total > 0 ? `${Math.round((v / row.total) * 100)}%` : "-"}</span>
-                </div>
-              ),
-            },
-            {
-              title: "✅ Exact Match", dataIndex: "exactMatch", key: "exactMatch",
-              render: (v, row) => (
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontWeight: 700, color: "#52c41a", minWidth: 20 }}>{v}</span>
-                  {row.total > 0 && <Progress percent={Math.round((v / row.total) * 100)} size="small" strokeColor="#52c41a" style={{ width: 70, margin: 0 }} showInfo={false} trailColor={dark ? '#2D2A50' : '#f0f0f0'} />}
-                  <span style={{ fontSize: 11, color: mutedColor }}>{row.total > 0 ? `${Math.round((v / row.total) * 100)}%` : "-"}</span>
-                </div>
-              ),
-            },
-            {
-              title: "Avg Score", key: "avgScore",
-              render: (_, row) => (
-                <span style={{ fontWeight: 700, color: row.count > 0 && (row.totalScore / row.count) >= 0.5 ? "#52c41a" : "#ff4d4f" }}>
-                  {row.count > 0 ? (row.totalScore / row.count).toFixed(1) : "-"}
-                </span>
-              ),
-            },
-            {
-              title: "Attempts", dataIndex: "count", key: "count",
-              render: v => <Badge count={v} style={{ backgroundColor: "#1890ff" }} overflowCount={999} />,
-            },
-          ]}
-        />
-      </Card>
-
       {/* Leaderboard */}
       <Card title={<span style={{ fontWeight: 700, color: textColor }}>🏆 Top Students Leaderboard</span>} bordered={false} style={cardStyle}>
         <Table
@@ -424,9 +356,9 @@ const LMSAnalyticsDashboard = ({ data, onFilterChange }) => {
               render: v => (
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <Progress
-                    percent={Math.min(parseFloat(v) * 10, 100)}
+                    percent={Math.min(parseFloat(v), 100)}
                     size="small"
-                    strokeColor={parseFloat(v) >= 0.75 ? "#52c41a" : parseFloat(v) >= 0.5 ? "#faad14" : "#ff4d4f"}
+                    strokeColor={parseFloat(v) >= 75 ? "#52c41a" : parseFloat(v) >= 50 ? "#faad14" : "#ff4d4f"}
                     style={{ width: 80, margin: 0 }}
                     showInfo={false}
                     trailColor={dark ? '#2D2A50' : '#f0f0f0'}
