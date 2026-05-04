@@ -562,7 +562,15 @@ const StudentQuiz = () => {
                     else interimText = t;
                 }
                 currentFinals = currentFinals.trim();
-                if (currentFinals) sessionFinals = currentFinals; // replace, never append
+                if (currentFinals) {
+                    sessionFinals = currentFinals;
+                    // Android Chrome replays previous session's finals at the start of a new
+                    // session. If currentFinals already starts with allFinals, it means the
+                    // replay already contains that text — clear allFinals to avoid duplication.
+                    const normCurr = currentFinals.toLowerCase().replace(/\s+/g, " ");
+                    const normAll  = (allFinals).toLowerCase().replace(/\s+/g, " ");
+                    if (normAll && normCurr.startsWith(normAll)) allFinals = "";
+                }
 
                 const fullText = [allFinals, sessionFinals].filter(Boolean).join(" ").trim();
                 const displayText = [fullText, interimText].filter(Boolean).join(" ").trim();
