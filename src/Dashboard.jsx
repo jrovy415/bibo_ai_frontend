@@ -201,7 +201,11 @@ const Homescreen = ({ authUser, onNavigate, darkMode, setDarkMode }) => {
     const fetchStats = async () => {
       setLoading(true);
       try {
-        const res = await axios.get('/students?all=true');
+        // Fetch students and attempts in parallel instead of sequentially
+        const [res, attRes] = await Promise.all([
+          axios.get('/students?all=true'),
+          axios.get('/quiz-attempts?all=true'),
+        ]);
         const students = res.data?.data || [];
         const total  = students.length;
         const locked = students.filter(s => s.is_locked).length;
@@ -212,14 +216,11 @@ const Homescreen = ({ authUser, onNavigate, darkMode, setDarkMode }) => {
           s.updated_at && new Date(s.updated_at) > yesterday
         ).length;
 
-        // ✅ CHANGE 2: Compute kinder and grade1 counts
         const kinder = students.filter(s => s.grade_level === 'Kinder').length;
         const grade1 = students.filter(s => s.grade_level === 'Grade 1').length;
 
-        // ✅ CHANGE 3: Include kinder and grade1 in setStats
         setStats({ total, active, locked, recentLogins, kinder, grade1 });
 
-        const attRes = await axios.get('/quiz-attempts?all=true');
         const attempts = attRes.data?.data || [];
 
         const scoreMap = {};

@@ -56,7 +56,7 @@ const StudentFinishedQuiz = () => {
     }
   }, [feedbackSent, loading, quizData]);
 
-  // ── Fetch quiz result ─────────────────────────────────────────
+  // ── Fetch quiz result + fire secondary fetches immediately ───────
   useEffect(() => {
     const applySnapshot = () => {
       if (!quizSnapshot) { navigate("/student", { replace: true }); return; }
@@ -67,11 +67,22 @@ const StudentFinishedQuiz = () => {
       setAnswers(fallback);
     };
 
-    const fetchQuizResult = async () => {
+    const fetchAll = async () => {
       try {
         const res = await axios.get(`/quiz-attempts/${attemptId}`);
         const { quiz, answers: apiAnswers, score: apiScore } = res.data.data;
         if (!quiz) { applySnapshot(); return; }
+
+        // Fire next-quiz fetch immediately without waiting for a React re-render.
+        // For regular levels only — post-test journey is handled in the effect below.
+        if (!isLevelPostTest(quiz.difficulty) && quiz.difficulty !== "Introduction") {
+          setNextLoading(true);
+          axios.get("/quizzes/get-quiz")
+            .then(r => { setActualNextQuiz(r.data.data?.questions ? r.data.data : null); })
+            .catch(() => setActualNextQuiz(null))
+            .finally(() => setNextLoading(false));
+        }
+
         setQuizData(quiz);
         setAnswers(apiAnswers ?? []);
         setScore(apiScore ?? (apiAnswers ?? []).filter(a => a.is_correct).length);
@@ -83,43 +94,23 @@ const StudentFinishedQuiz = () => {
       }
     };
 
-    if (attemptId) fetchQuizResult();
+    if (attemptId) fetchAll();
     else { setLoading(false); navigate("/student", { replace: true }); }
   }, [attemptId]);
 
-  // ── Fetch journey (PostTest only) ─────────────────────────────
+  // ── Fetch journey (PostTest only) — kept separate: needs authUser ──
   useEffect(() => {
-    const fetchJourney = async () => {
-      if (!authUser?.id) return;
+    if (!loading && quizData && isLevelPostTest(quizData.difficulty) && authUser?.id) {
       setJourneyLoading(true);
-      try {
-        const res  = await axios.get(`/quiz-attempts/student-attempts/${authUser.id}`);
-        const data = res.data?.data ?? [];
-        setJourneyAttempts(Array.isArray(data) ? data : []);
-      } catch(err) { console.error(err); } finally { setJourneyLoading(false); }
-    };
-    if (!loading && quizData && isLevelPostTest(quizData.difficulty)) fetchJourney();
-  }, [loading, quizData, authUser]);
-
-  // ── Fetch next quiz (regular levels only) ─────────────────────
-  useEffect(() => {
-    if (!loading && quizData) {
-      const isPreTest  = quizData.difficulty === "Introduction";
-      const isPostTest = isLevelPostTest(quizData.difficulty);
-      if (!isPreTest && !isPostTest) {
-        const fetchNextQuiz = async () => {
-          setNextLoading(true);
-          try {
-            const res  = await axios.get("/quizzes/get-quiz");
-            const next = res.data.data;
-            if (next && next.questions) setActualNextQuiz(next);
-            else setActualNextQuiz(null);
-          } catch(err) { setActualNextQuiz(null); } finally { setNextLoading(false); }
-        };
-        fetchNextQuiz();
-      }
+      axios.get(`/quiz-attempts/student-attempts/${authUser.id}`)
+        .then(r => {
+          const data = r.data?.data ?? [];
+          setJourneyAttempts(Array.isArray(data) ? data : []);
+        })
+        .catch(console.error)
+        .finally(() => setJourneyLoading(false));
     }
-  }, [loading, quizData]);
+  }, [loading, quizData, authUser]);
 
   // ── Animate progress bar ──────────────────────────────────────
   useEffect(() => {

@@ -3,7 +3,7 @@ import { Spin, message } from "antd";
 import { AudioOutlined, SoundOutlined, PauseOutlined } from "@ant-design/icons";
 import axios, { nonApi } from "../../plugins/axios";
 import { useAuth } from "../../composables/useAuth";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import QuizMaterial from "../components/QuizMaterial";
 import { speakText, cancelSpeech } from "../ttsUtil";
 
@@ -462,7 +462,8 @@ const StudentQuiz = () => {
     useEffect(() => { answersRef.current = answers; }, [answers]);
 
     const { authUser, getUser } = useAuth();
-    const navigate = useNavigate();
+    const navigate  = useNavigate();
+    const location  = useLocation();
 
     const isPreTest  = quiz?.difficulty === "Introduction";
     const isPostTest = isLevelPostTest(quiz?.difficulty);
@@ -482,11 +483,21 @@ const StudentQuiz = () => {
     useEffect(() => {
         const fetchQuiz = async () => {
             try {
-                await getUser();
-                const res = await axios.get("/quizzes/get-quiz");
-                const fetchedQuiz = res.data.data || null;
+                const { prefetchedQuiz } = location.state || {};
+                let fetchedQuiz;
+                if (prefetchedQuiz) {
+                    // Quiz already loaded on the results page — skip the API round trip
+                    await getUser();
+                    fetchedQuiz = prefetchedQuiz;
+                } else {
+                    // Run auth + quiz fetch in parallel
+                    const [, res] = await Promise.all([
+                        getUser(),
+                        axios.get("/quizzes/get-quiz"),
+                    ]);
+                    fetchedQuiz = res.data.data || null;
+                }
                 setQuiz(fetchedQuiz);
-                // If no material or material is a link → auto-unlock
                 const mat = fetchedQuiz?.material;
                 const needsUnlock = mat && (mat.title || mat.content) && mat.type !== 'link';
                 if (!needsUnlock) setQuizUnlocked(true);

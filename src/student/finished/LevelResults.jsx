@@ -72,7 +72,10 @@ const LevelResults = ({
             <button className="action-btn btn-secondary" disabled style={{ opacity:0.6 }}>⏳ Loading next…</button>
           )}
           {!nextLoading && actualNextQuiz && (
-            <button className={`action-btn ${isNextPostTest ? "btn-posttest" : "btn-primary"}`} onClick={() => navigate("/student")}>
+            <button
+              className={`action-btn ${isNextPostTest ? "btn-posttest" : "btn-primary"}`}
+              onClick={() => navigate("/student/quiz", { state: { prefetchedQuiz: actualNextQuiz } })}
+            >
               {isNextPostTest ? "🎓 Take Post-Test!" : "➡️ Next Level!"}
             </button>
           )}

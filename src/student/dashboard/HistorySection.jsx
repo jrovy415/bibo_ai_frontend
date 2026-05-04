@@ -44,7 +44,7 @@ const HistorySection = ({ attempts = [] }) => {
           const diff = attempt.difficulty || attempt.quiz?.difficulty;
           const rawScore = attempt.score ?? 0;
           const isReadingAssessment = ['Introduction','EasyPostTest','MediumPostTest','HardPostTest','ExpertPostTest','PostTest'].includes(diff);
-          const totalQuestions = attempt.quiz?.questions?.length || attempt.total_questions || 1;
+          const totalQuestions = attempt.quiz?.questions_count ?? attempt.quiz?.questions?.length ?? attempt.total_questions ?? 1;
           const pct = isReadingAssessment
             ? Math.min(100, Math.round(rawScore))
             : Math.round((rawScore / totalQuestions) * 100);
