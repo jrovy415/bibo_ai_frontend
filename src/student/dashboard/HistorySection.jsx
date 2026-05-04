@@ -1,29 +1,9 @@
-import { useState, useEffect } from "react";
-import { Spin } from "antd";
-import axios from "../../../plugins/axios";
 import {
   difficultyEmojis, difficultyColors, difficultyLabels, difficultyOrder,
   isPostTestDifficulty, getStarCount, StarRow,
 } from "./dashboardConstants";
 
-const HistorySection = ({ studentId }) => {
-  const [attempts, setAttempts] = useState([]);
-  const [loading,  setLoading]  = useState(true);
-
-  useEffect(() => {
-    const fetch = async () => {
-      setLoading(true);
-      try {
-        const res  = await axios.get(`/quiz-attempts/student-attempts/${studentId}`);
-        const data = res.data?.data ?? [];
-        setAttempts(Array.isArray(data) ? data : []);
-      } catch(e) { console.error(e); }
-      finally { setLoading(false); }
-    };
-    fetch();
-  }, [studentId]);
-
-  if (loading) return <div style={{ textAlign:"center", padding:20 }}><Spin size="small"/></div>;
+const HistorySection = ({ attempts = [] }) => {
   if (attempts.length === 0) return (
     <div style={{ textAlign:"center", padding:"24px 16px", color:"#aaa", fontFamily:"'Fredoka One',cursive", fontSize:16 }}>
       📭 No reading history yet.

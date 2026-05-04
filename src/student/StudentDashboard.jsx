@@ -28,6 +28,7 @@ const StudentDashboard = () => {
   const [showAllQuizzes,    setShowAllQuizzes]    = useState(false);
   const [allLevelsComplete, setAllLevelsComplete] = useState(false);
   const [showHistory,       setShowHistory]       = useState(false);
+  const [dashboardAttempts, setDashboardAttempts] = useState([]);
 
   const [showTutorial,     setShowTutorial]     = useState(false);
   const [tutorialStep,     setTutorialStep]     = useState(0);
@@ -43,59 +44,49 @@ const StudentDashboard = () => {
   useEffect(() => { const init = async () => { try { await getUser(); } catch(e) { console.error(e); } }; init(); }, []);
 
   useEffect(() => {
-    const fetchDifficultyAndQuiz = async () => {
+    const fetchDashboard = async () => {
       if (!authUser?.id) return;
       setLoading(true);
       try {
-        const diffRes = await axios.get(`/students/${authUser.id}/difficulty`);
-        const diff    = diffRes.data.data?.difficulty || "Introduction";
-        setCurrentDifficulty(diff);
+        // Single request replacing 4 separate API calls
+        const res      = await axios.get("/dashboard");
+        const { difficulty, quiz, attempts } = res.data.data;
 
-        // Only check history if difficulty is Introduction.
-        // Any other level means the student is in an active retake.
-        if (diff === 'Introduction') {
-          const histRes = await axios.get(`/quiz-attempts/student-attempts/${authUser.id}`);
-          const histData = histRes.data?.data ?? [];
-          const hasCompletedPostTest = Array.isArray(histData) && histData.some(a => {
-            const d = a.difficulty || a.quiz?.difficulty;
-            return isPostTestDifficulty(d) && a.completed_at != null;
-          });
-          if (hasCompletedPostTest) {
-            setAllLevelsComplete(true); setAvailableQuiz(null); setShowAllQuizzes(false);
-            setLoading(false); return;
-          }
+        const diff     = difficulty || "Introduction";
+        const attList  = Array.isArray(attempts) ? attempts : [];
+        setCurrentDifficulty(diff);
+        setDashboardAttempts(attList);
+
+        const hasCompletedPostTest = attList.some(a => {
+          const d = a.difficulty || a.quiz?.difficulty;
+          return isPostTestDifficulty(d) && a.completed_at != null;
+        });
+
+        if (diff === 'Introduction' && hasCompletedPostTest) {
+          setAllLevelsComplete(true); setAvailableQuiz(null); setShowAllQuizzes(false);
+          return;
         }
 
-        const quizRes = await axios.get("/quizzes/get-quiz");
-        if (quizRes.data.data?.questions) {
-          const fetchedQuiz  = quizRes.data.data;
-          const latestAttempt = fetchedQuiz.latest_quiz_attempt;
-          const isOwnAttempt  = latestAttempt?.student_id === authUser.id;
-
-          // Only count PostTest as completed if it was done AFTER the latest Pre-Test.
-          // This prevents old completed PostTest from blocking during retake.
-          const histRes2  = await axios.get(`/quiz-attempts/student-attempts/${authUser.id}`);
-          const histData2 = histRes2.data?.data ?? [];
-          const latestIntroAttempt = Array.isArray(histData2)
-            ? histData2
-                .filter(a => (a.difficulty || a.quiz?.difficulty) === 'Introduction' && a.completed_at)
-                .sort((a,b) => new Date(b.completed_at) - new Date(a.completed_at))[0]
-            : null;
+        if (quiz?.questions) {
+          const latestAttempt   = quiz.latest_quiz_attempt;
+          const isOwnAttempt    = latestAttempt?.student_id === authUser.id;
+          const latestIntroAttempt = attList
+            .filter(a => (a.difficulty || a.quiz?.difficulty) === 'Introduction' && a.completed_at)
+            .sort((a,b) => new Date(b.completed_at) - new Date(a.completed_at))[0];
           const latestIntroDate = latestIntroAttempt?.completed_at ? new Date(latestIntroAttempt.completed_at) : null;
           const postTestDate    = latestAttempt?.completed_at      ? new Date(latestAttempt.completed_at)      : null;
 
           const isPostTestCompleted =
-            isPostTestDifficulty(fetchedQuiz.difficulty) &&
-            isOwnAttempt &&
-            postTestDate != null &&
-            diff === fetchedQuiz.difficulty &&
+            isPostTestDifficulty(quiz.difficulty) &&
+            isOwnAttempt && postTestDate != null &&
+            diff === quiz.difficulty &&
             (latestIntroDate === null || postTestDate > latestIntroDate);
 
           if (isPostTestCompleted) { setAllLevelsComplete(true); setAvailableQuiz(null); setShowAllQuizzes(false); }
-          else { setAvailableQuiz(fetchedQuiz); setShowAllQuizzes(false); setAllLevelsComplete(false); }
+          else { setAvailableQuiz(quiz); setShowAllQuizzes(false); setAllLevelsComplete(false); }
         } else {
           setAvailableQuiz(null); setShowAllQuizzes(true);
-          setAllQuizzes(quizRes.data.data || {}); setAllLevelsComplete(false);
+          setAllQuizzes(quiz || {}); setAllLevelsComplete(false);
         }
       } catch(e) {
         console.error(e);
@@ -104,7 +95,7 @@ const StudentDashboard = () => {
         setLoading(false);
       }
     };
-    fetchDifficultyAndQuiz();
+    fetchDashboard();
   }, [authUser]);
 
   useEffect(() => {
@@ -321,16 +312,10 @@ const StudentDashboard = () => {
         </div>
         <div style={{ marginTop:12, display:"flex", gap:4, justifyContent:"center", flexWrap:"wrap" }}>
           {["Easy","EasyPostTest","Medium","MediumPostTest","Hard","HardPostTest","Expert","ExpertPostTest","PostTest"].map(level => {
-            const order     = ["Introduction","Easy","EasyPostTest","Medium","MediumPostTest","Hard","HardPostTest","Expert","ExpertPostTest","PostTest"];
-            const levelIdx  = order.indexOf(level);
-            const currentIdx= order.indexOf(currentDifficulty);
-            const isDone    = currentIdx > levelIdx;
-            const isCurrent = currentIdx === levelIdx;
-            const isActive  = isDone || isCurrent;
             const shortLabel= {Easy:"Low",EasyPostTest:"Low PT",Medium:"Mid",MediumPostTest:"Mid PT",Hard:"Hard",HardPostTest:"Hard PT",Expert:"Expert",ExpertPostTest:"Expert PT",PostTest:"Post"}[level];
             return (
-              <div key={level} style={{ fontSize:10, fontWeight:800, padding:"3px 8px", borderRadius:20, background:isActive?(difficultyColors[level]||"#aaa"):"#f0f0f0", color:isActive?"white":"#aaa", border:`2px solid ${isActive?(difficultyColors[level]||"#aaa"):"#ddd"}`, outline:isCurrent?`3px solid ${difficultyColors[level]||"#aaa"}`:"none", outlineOffset:"2px", transition:"all 0.3s ease" }}>
-                {isDone ? "✓" : (difficultyEmojis[level]||"📋")} {shortLabel}
+              <div key={level} style={{ fontSize:10, fontWeight:800, padding:"3px 8px", borderRadius:20, background:"#f0f0f0", color:"#aaa", border:"2px solid #ddd" }}>
+                {difficultyEmojis[level]||"📋"} {shortLabel}
               </div>
             );
           })}
@@ -353,7 +338,7 @@ const StudentDashboard = () => {
               <button onClick={handleRetake} className="retake-btn">🔄 Take Again from Pre-Test!</button>
               <p style={{ fontSize:"clamp(11px,2.5vw,13px)", color:"#888", marginTop:8, fontStyle:"italic" }}>Starting over will let you improve your scores! 💪</p>
             </div>
-            {showHistory && authUser?.id && <HistorySection studentId={authUser.id}/>}
+            {showHistory && <HistorySection attempts={dashboardAttempts}/>}
           </>
         )}
 

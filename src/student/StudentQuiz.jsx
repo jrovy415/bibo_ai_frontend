@@ -519,7 +519,10 @@ const StudentQuiz = () => {
         const recognition = new SpeechRecognition();
         let captured = false;
         let silenceTimer = null;
-        let finalText = "";
+        // allFinals: text committed from completed sessions (for non-continuous Android Chrome)
+        // sessionFinals: finals seen so far in the current session (rebuilt from scratch each event)
+        let allFinals = "";
+        let sessionFinals = "";
 
         recognition.continuous     = true;
         recognition.interimResults = true;
@@ -528,46 +531,59 @@ const StudentQuiz = () => {
             setRecStatus("listening");
             setTimerStarted(true);
             setTimerPaused(false);
+            sessionFinals = ""; // reset per session
         };
         recognition.onresult = (event) => {
-            // Use event.resultIndex (browser's own cursor) — avoids duplicates when
-            // mobile Chrome restarts recognition and resets result indices mid-session.
-            let newFinals = "";
+            // Rebuild session text from ALL results in event (not incrementally).
+            // Android Chrome sometimes updates results[0] in-place as isFinal with a
+            // growing transcript — incremental appending would create "i i see i see a…".
+            // Reading from the full results array each time avoids this.
+            let curSessionFinals = "";
             let interimText = "";
-            for (let i = event.resultIndex; i < event.results.length; i++) {
+            for (let i = 0; i < event.results.length; i++) {
                 const t = event.results[i][0].transcript;
-                if (event.results[i].isFinal) newFinals += t + " ";
+                if (event.results[i].isFinal) curSessionFinals += t + " ";
                 else interimText = t;
             }
-            if (newFinals.trim()) finalText = (finalText + " " + newFinals).trim();
+            curSessionFinals = curSessionFinals.trim();
+            sessionFinals = curSessionFinals;
 
-            const displayText = (finalText + (interimText ? " " + interimText : "")).trim();
+            const displayText = [allFinals, curSessionFinals, interimText].filter(Boolean).join(" ").trim();
             if (displayText) setTranscript(displayText);
 
             if (silenceTimer) clearTimeout(silenceTimer);
             silenceTimer = setTimeout(() => {
-                if (!captured && finalText) {
+                const captureText = [allFinals, curSessionFinals].filter(Boolean).join(" ").trim();
+                if (!captured && captureText) {
                     captured = true;
                     recognition.stop();
                     setRecStatus("idle");
                     setTimerPaused(true);
                     setShowConfetti(true);
                     setTimeout(() => setShowConfetti(false), 3000);
-                    const capturedText = finalText;
                     let count = 3;
                     setAutoNextCountdown(count);
                     clearInterval(countIntervalRef.current);
                     countIntervalRef.current = setInterval(() => {
                         count -= 1;
-                        if (count <= 0) { clearInterval(countIntervalRef.current); setAutoNextCountdown(null); autoNextRef.current?.(capturedText); }
+                        if (count <= 0) { clearInterval(countIntervalRef.current); setAutoNextCountdown(null); autoNextRef.current?.(captureText); }
                         else { setAutoNextCountdown(count); }
                     }, 1000);
                 }
             }, 2000);
         };
         recognition.onerror = () => setRecStatus("error");
-        // Only restart when nothing heard yet — prevents echo/ambient looping
-        recognition.onend   = () => { if (!captured && finalText === "") setTimeout(() => recognition.start(), 300); };
+        recognition.onend = () => {
+            if (!captured) {
+                // Commit this session's finals before restarting so cross-session
+                // text accumulates correctly on non-continuous Android Chrome.
+                if (sessionFinals) {
+                    allFinals = [allFinals, sessionFinals].filter(Boolean).join(" ").trim();
+                    sessionFinals = "";
+                }
+                setTimeout(() => recognition.start(), 300);
+            }
+        };
         recognitionRef.current = recognition;
         setTranscript("");
         return () => { captured = true; if (silenceTimer) clearTimeout(silenceTimer); recognition.stop(); };
