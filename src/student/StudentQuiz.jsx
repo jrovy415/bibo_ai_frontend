@@ -551,17 +551,21 @@ const StudentQuiz = () => {
             };
 
             rec.onresult = (event) => {
-                let curSessionFinals = "";
+                // Start from event.resultIndex — Android Chrome re-sends all prior
+                // results on every onresult call, so looping from 0 duplicates words.
+                let newFinals = "";
                 let interimText = "";
-                for (let i = 0; i < event.results.length; i++) {
+                for (let i = event.resultIndex; i < event.results.length; i++) {
                     const t = event.results[i][0].transcript;
-                    if (event.results[i].isFinal) curSessionFinals += t + " ";
+                    if (event.results[i].isFinal) newFinals += t + " ";
                     else interimText = t;
                 }
-                curSessionFinals = curSessionFinals.trim();
-                sessionFinals = curSessionFinals;
+                newFinals = newFinals.trim();
+                if (newFinals) {
+                    sessionFinals = [sessionFinals, newFinals].filter(Boolean).join(" ").trim();
+                }
 
-                const fullText = [allFinals, curSessionFinals].filter(Boolean).join(" ").trim();
+                const fullText = [allFinals, sessionFinals].filter(Boolean).join(" ").trim();
                 const displayText = [fullText, interimText].filter(Boolean).join(" ").trim();
                 if (displayText) setTranscript(displayText);
 
