@@ -539,7 +539,7 @@ const StudentQuiz = () => {
         // Chrome causes result accumulation across sessions, producing duplicated words.
         const makeSession = () => {
             const rec = new SpeechRecognition();
-            rec.continuous     = true;
+            rec.continuous     = false;
             rec.interimResults = true;
             rec.lang           = "en-US";
 
