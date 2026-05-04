@@ -559,13 +559,21 @@ const StudentQuiz = () => {
             curSessionFinals = curSessionFinals.trim();
             sessionFinals = curSessionFinals;
 
-            const displayText = [allFinals, curSessionFinals, interimText].filter(Boolean).join(" ").trim();
+            // Android Chrome accumulates results across recognition.start() calls on the
+            // same object — curSessionFinals may already contain allFinals as a prefix.
+            // Detect this to avoid doubling up the transcript.
+            const norm = (s) => (s || "").toLowerCase().replace(/\s+/g, " ").trim();
+            const sessionHasAll = allFinals && norm(curSessionFinals).startsWith(norm(allFinals));
+            const fullText = sessionHasAll
+                ? curSessionFinals
+                : [allFinals, curSessionFinals].filter(Boolean).join(" ").trim();
+
+            const displayText = [fullText, interimText].filter(Boolean).join(" ").trim();
             if (displayText) setTranscript(displayText);
 
             if (silenceTimer) clearTimeout(silenceTimer);
             silenceTimer = setTimeout(() => {
-                const captureText = [allFinals, curSessionFinals].filter(Boolean).join(" ").trim();
-                if (!captured && captureText) {
+                if (!captured && fullText) {
                     captured = true;
                     recognition.stop();
                     setRecStatus("idle");
@@ -577,7 +585,7 @@ const StudentQuiz = () => {
                     clearInterval(countIntervalRef.current);
                     countIntervalRef.current = setInterval(() => {
                         count -= 1;
-                        if (count <= 0) { clearInterval(countIntervalRef.current); setAutoNextCountdown(null); autoNextRef.current?.(captureText); }
+                        if (count <= 0) { clearInterval(countIntervalRef.current); setAutoNextCountdown(null); autoNextRef.current?.(fullText); }
                         else { setAutoNextCountdown(count); }
                     }, 1000);
                 }
@@ -586,10 +594,16 @@ const StudentQuiz = () => {
         recognition.onerror = () => setRecStatus("error");
         recognition.onend = () => {
             if (!captured) {
-                // Commit this session's finals before restarting so cross-session
-                // text accumulates correctly on non-continuous Android Chrome.
                 if (sessionFinals) {
-                    allFinals = [allFinals, sessionFinals].filter(Boolean).join(" ").trim();
+                    const norm = (s) => (s || "").toLowerCase().replace(/\s+/g, " ").trim();
+                    // If sessionFinals already contains allFinals as a prefix, the
+                    // recognition object is accumulating across sessions (Android Chrome).
+                    // Replace allFinals instead of appending to prevent double-text.
+                    if (allFinals && norm(sessionFinals).startsWith(norm(allFinals))) {
+                        allFinals = sessionFinals;
+                    } else {
+                        allFinals = [allFinals, sessionFinals].filter(Boolean).join(" ").trim();
+                    }
                     sessionFinals = "";
                 }
                 setTimeout(() => recognition.start(), 300);
