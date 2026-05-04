@@ -551,19 +551,18 @@ const StudentQuiz = () => {
             };
 
             rec.onresult = (event) => {
-                // Start from event.resultIndex — Android Chrome re-sends all prior
-                // results on every onresult call, so looping from 0 duplicates words.
-                let newFinals = "";
+                // Loop from 0 — on Android Chrome, event.results is the authoritative
+                // full state for this session. We REPLACE sessionFinals (not append)
+                // so re-sent results never cause duplication.
+                let currentFinals = "";
                 let interimText = "";
-                for (let i = event.resultIndex; i < event.results.length; i++) {
+                for (let i = 0; i < event.results.length; i++) {
                     const t = event.results[i][0].transcript;
-                    if (event.results[i].isFinal) newFinals += t + " ";
+                    if (event.results[i].isFinal) currentFinals += t + " ";
                     else interimText = t;
                 }
-                newFinals = newFinals.trim();
-                if (newFinals) {
-                    sessionFinals = [sessionFinals, newFinals].filter(Boolean).join(" ").trim();
-                }
+                currentFinals = currentFinals.trim();
+                if (currentFinals) sessionFinals = currentFinals; // replace, never append
 
                 const fullText = [allFinals, sessionFinals].filter(Boolean).join(" ").trim();
                 const displayText = [fullText, interimText].filter(Boolean).join(" ").trim();
