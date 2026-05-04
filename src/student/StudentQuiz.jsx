@@ -527,91 +527,82 @@ const StudentQuiz = () => {
         if (!started || !currentQuestion) return;
         if (!("webkitSpeechRecognition" in window) && !("SpeechRecognition" in window)) { setRecStatus("error"); return; }
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        const recognition = new SpeechRecognition();
         let captured = false;
         let silenceTimer = null;
-        // allFinals: text committed from completed sessions (for non-continuous Android Chrome)
-        // sessionFinals: finals seen so far in the current session (rebuilt from scratch each event)
         let allFinals = "";
         let sessionFinals = "";
 
-        recognition.continuous     = true;
-        recognition.interimResults = true;
-        recognition.lang           = "en-US";
-        recognition.onstart  = () => {
-            setRecStatus("listening");
-            setTimerStarted(true);
-            setTimerPaused(false);
-            sessionFinals = ""; // reset per session
-        };
-        recognition.onresult = (event) => {
-            // Rebuild session text from ALL results in event (not incrementally).
-            // Android Chrome sometimes updates results[0] in-place as isFinal with a
-            // growing transcript — incremental appending would create "i i see i see a…".
-            // Reading from the full results array each time avoids this.
-            let curSessionFinals = "";
-            let interimText = "";
-            for (let i = 0; i < event.results.length; i++) {
-                const t = event.results[i][0].transcript;
-                if (event.results[i].isFinal) curSessionFinals += t + " ";
-                else interimText = t;
-            }
-            curSessionFinals = curSessionFinals.trim();
-            sessionFinals = curSessionFinals;
+        // Each restart creates a brand-new instance — reusing the same object on Android
+        // Chrome causes result accumulation across sessions, producing duplicated words.
+        const makeAndStart = () => {
+            const rec = new SpeechRecognition();
+            rec.continuous     = true;
+            rec.interimResults = true;
+            rec.lang           = "en-US";
 
-            // Android Chrome accumulates results across recognition.start() calls on the
-            // same object — curSessionFinals may already contain allFinals as a prefix.
-            // Detect this to avoid doubling up the transcript.
-            const norm = (s) => (s || "").toLowerCase().replace(/\s+/g, " ").trim();
-            const sessionHasAll = allFinals && norm(curSessionFinals).startsWith(norm(allFinals));
-            const fullText = sessionHasAll
-                ? curSessionFinals
-                : [allFinals, curSessionFinals].filter(Boolean).join(" ").trim();
+            rec.onstart = () => {
+                setRecStatus("listening");
+                setTimerStarted(true);
+                setTimerPaused(false);
+                sessionFinals = "";
+            };
 
-            const displayText = [fullText, interimText].filter(Boolean).join(" ").trim();
-            if (displayText) setTranscript(displayText);
-
-            if (silenceTimer) clearTimeout(silenceTimer);
-            silenceTimer = setTimeout(() => {
-                if (!captured && fullText) {
-                    captured = true;
-                    recognition.stop();
-                    setRecStatus("idle");
-                    setTimerPaused(true);
-                    setShowConfetti(true);
-                    setTimeout(() => setShowConfetti(false), 3000);
-                    let count = 3;
-                    setAutoNextCountdown(count);
-                    clearInterval(countIntervalRef.current);
-                    countIntervalRef.current = setInterval(() => {
-                        count -= 1;
-                        if (count <= 0) { clearInterval(countIntervalRef.current); setAutoNextCountdown(null); autoNextRef.current?.(fullText); }
-                        else { setAutoNextCountdown(count); }
-                    }, 1000);
+            rec.onresult = (event) => {
+                let curSessionFinals = "";
+                let interimText = "";
+                for (let i = 0; i < event.results.length; i++) {
+                    const t = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) curSessionFinals += t + " ";
+                    else interimText = t;
                 }
-            }, 2000);
-        };
-        recognition.onerror = () => setRecStatus("error");
-        recognition.onend = () => {
-            if (!captured) {
-                if (sessionFinals) {
-                    const norm = (s) => (s || "").toLowerCase().replace(/\s+/g, " ").trim();
-                    // If sessionFinals already contains allFinals as a prefix, the
-                    // recognition object is accumulating across sessions (Android Chrome).
-                    // Replace allFinals instead of appending to prevent double-text.
-                    if (allFinals && norm(sessionFinals).startsWith(norm(allFinals))) {
-                        allFinals = sessionFinals;
-                    } else {
-                        allFinals = [allFinals, sessionFinals].filter(Boolean).join(" ").trim();
+                curSessionFinals = curSessionFinals.trim();
+                sessionFinals = curSessionFinals;
+
+                const fullText = [allFinals, curSessionFinals].filter(Boolean).join(" ").trim();
+                const displayText = [fullText, interimText].filter(Boolean).join(" ").trim();
+                if (displayText) setTranscript(displayText);
+
+                if (silenceTimer) clearTimeout(silenceTimer);
+                silenceTimer = setTimeout(() => {
+                    if (!captured && fullText) {
+                        captured = true;
+                        rec.stop();
+                        setRecStatus("idle");
+                        setTimerPaused(true);
+                        setShowConfetti(true);
+                        setTimeout(() => setShowConfetti(false), 3000);
+                        let count = 3;
+                        setAutoNextCountdown(count);
+                        clearInterval(countIntervalRef.current);
+                        countIntervalRef.current = setInterval(() => {
+                            count -= 1;
+                            if (count <= 0) { clearInterval(countIntervalRef.current); setAutoNextCountdown(null); autoNextRef.current?.(fullText); }
+                            else { setAutoNextCountdown(count); }
+                        }, 1000);
                     }
-                    sessionFinals = "";
+                }, 2000);
+            };
+
+            rec.onerror = () => setRecStatus("error");
+
+            rec.onend = () => {
+                if (!captured) {
+                    if (sessionFinals) {
+                        allFinals = [allFinals, sessionFinals].filter(Boolean).join(" ").trim();
+                        sessionFinals = "";
+                    }
+                    setTimeout(() => { if (!captured) recognitionRef.current = makeAndStart(); }, 300);
                 }
-                setTimeout(() => recognition.start(), 300);
-            }
+            };
+
+            recognitionRef.current = rec;
+            rec.start();
+            return rec;
         };
-        recognitionRef.current = recognition;
+
         setTranscript("");
-        return () => { captured = true; if (silenceTimer) clearTimeout(silenceTimer); recognition.stop(); };
+        makeAndStart();
+        return () => { captured = true; if (silenceTimer) clearTimeout(silenceTimer); recognitionRef.current?.stop(); };
     }, [currentIndex, started, currentQuestion]);
 
     const startQuiz = async () => {
