@@ -532,9 +532,10 @@ const StudentQuiz = () => {
         let allFinals = "";
         let sessionFinals = "";
 
+        // Creates a fresh SpeechRecognition instance without starting it.
         // Each restart creates a brand-new instance — reusing the same object on Android
         // Chrome causes result accumulation across sessions, producing duplicated words.
-        const makeAndStart = () => {
+        const makeSession = () => {
             const rec = new SpeechRecognition();
             rec.continuous     = true;
             rec.interimResults = true;
@@ -591,17 +592,23 @@ const StudentQuiz = () => {
                         allFinals = [allFinals, sessionFinals].filter(Boolean).join(" ").trim();
                         sessionFinals = "";
                     }
-                    setTimeout(() => { if (!captured) recognitionRef.current = makeAndStart(); }, 300);
+                    // For Android restart: create fresh instance AND start it immediately
+                    setTimeout(() => {
+                        if (!captured) {
+                            const next = makeSession();
+                            recognitionRef.current = next;
+                            next.start();
+                        }
+                    }, 300);
                 }
             };
 
             recognitionRef.current = rec;
-            rec.start();
             return rec;
         };
 
         setTranscript("");
-        makeAndStart();
+        makeSession(); // create but do NOT start — startQuiz/handleNext starts it externally
         return () => { captured = true; if (silenceTimer) clearTimeout(silenceTimer); recognitionRef.current?.stop(); };
     }, [currentIndex, started, currentQuestion]);
 
