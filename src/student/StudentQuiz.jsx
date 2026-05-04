@@ -293,9 +293,9 @@ const computeWordScore = (transcript, question, forceWordByWord = false) => {
 };
 
 const getPlacementLevel = (pct) => {
-    if (pct >= 80) return "Expert";
-    if (pct >= 60) return "Hard";
-    if (pct >= 40) return "Medium";
+    if (pct >= 91) return "Expert";
+    if (pct >= 61) return "Hard";
+    if (pct >= 31) return "Medium";
     return "Easy";
 };
 
@@ -520,7 +520,6 @@ const StudentQuiz = () => {
         let captured = false;
         let silenceTimer = null;
         let finalText = "";
-        let lastFinalIndex = -1; // tracks last processed result to prevent duplicates
 
         recognition.continuous     = true;
         recognition.interimResults = true;
@@ -531,29 +530,20 @@ const StudentQuiz = () => {
             setTimerPaused(false);
         };
         recognition.onresult = (event) => {
-            // Only process NEW final results (track lastFinalIndex to avoid duplicates)
+            // Use event.resultIndex (browser's own cursor) — avoids duplicates when
+            // mobile Chrome restarts recognition and resets result indices mid-session.
             let newFinals = "";
-            for (let i = lastFinalIndex + 1; i < event.results.length; i++) {
-                if (event.results[i].isFinal) {
-                    newFinals += event.results[i][0].transcript + " ";
-                    lastFinalIndex = i;
-                }
+            let interimText = "";
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                const t = event.results[i][0].transcript;
+                if (event.results[i].isFinal) newFinals += t + " ";
+                else interimText = t;
             }
+            if (newFinals.trim()) finalText = (finalText + " " + newFinals).trim();
 
-            // Current interim result (not yet final)
-            const lastResult = event.results[event.results.length - 1];
-            const interim = !lastResult.isFinal ? lastResult[0].transcript : "";
-
-            // Append only NEW finals to accumulator
-            if (newFinals.trim()) {
-                finalText = (finalText + " " + newFinals).trim();
-            }
-
-            // Show accumulated finals + current interim in real time
-            const displayText = (finalText + (interim ? " " + interim : "")).trim();
+            const displayText = (finalText + (interimText ? " " + interimText : "")).trim();
             if (displayText) setTranscript(displayText);
 
-            // Reset silence timer — capture after 2s of no new speech
             if (silenceTimer) clearTimeout(silenceTimer);
             silenceTimer = setTimeout(() => {
                 if (!captured && finalText) {
@@ -892,7 +882,12 @@ const StudentQuiz = () => {
 
                 <div key={currentIndex} className="question-card" style={{ zIndex:2, background:"rgba(255,255,255,0.95)", borderRadius:28, padding:"28px 32px", boxShadow:"0 10px 40px rgba(0,0,0,0.15), 0 0 0 5px rgba(255,179,71,0.45)", width:"100%", maxWidth:640, display:"flex", flexDirection:"column", alignItems:"center", gap:16, marginBottom:16 }}>
                     {currentQuestion?.photo && (
-                        <img src={`${nonApi}/${currentQuestion.photo}`} alt="Question" style={{ maxWidth:320, maxHeight:220, width:"100%", height:"auto", objectFit:"contain", borderRadius:16, boxShadow:"0 6px 20px rgba(0,0,0,0.15)", border:"4px solid #ffd93d" }} />
+                        <img
+                            src={currentQuestion.photo.startsWith("http") ? currentQuestion.photo : `${nonApi}/${currentQuestion.photo.replace(/^\/+/, "")}`}
+                            alt="Question"
+                            onError={(e) => { e.target.style.display = "none"; }}
+                            style={{ maxWidth:320, maxHeight:220, width:"100%", height:"auto", objectFit:"contain", borderRadius:16, boxShadow:"0 6px 20px rgba(0,0,0,0.15)", border:"4px solid #ffd93d" }}
+                        />
                     )}
 
                     {!isPreTest && !isPostTest && (

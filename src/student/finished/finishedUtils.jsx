@@ -268,9 +268,9 @@ export const scoreWordByWord = (transcript, correctText, maxPoints) => {
 };
 
 export const getPlacementLevel = (pct) => {
-  if (pct >= 80) return { level:"Expert", color:"#cc5de8", emoji:"🏆", label:"Grade Ready Reader" };
-  if (pct >= 60) return { level:"Hard",   color:"#ff6b6b", emoji:"💎", label:"Developing Reader" };
-  if (pct >= 40) return { level:"Medium", color:"#ffa94d", emoji:"🔥", label:"Beginning Reader" };
+  if (pct >= 91) return { level:"Expert", color:"#cc5de8", emoji:"🏆", label:"Grade Ready Reader" };
+  if (pct >= 61) return { level:"Hard",   color:"#ff6b6b", emoji:"💎", label:"Developing Reader" };
+  if (pct >= 31) return { level:"Medium", color:"#ffa94d", emoji:"🔥", label:"Beginning Reader" };
   return             { level:"Easy",   color:"#74c0fc", emoji:"⭐", label:"Low Reader" };
 };
 
