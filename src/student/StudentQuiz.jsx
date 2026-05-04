@@ -457,6 +457,7 @@ const StudentQuiz = () => {
     const backgroundAudioRef = useRef(null);
     const autoNextRef        = useRef(null);
     const countIntervalRef   = useRef(null);
+    const retryRef           = useRef(null);
 
     const answersRef = useRef({});
     useEffect(() => { answersRef.current = answers; }, [answers]);
@@ -528,6 +529,7 @@ const StudentQuiz = () => {
         if (!("webkitSpeechRecognition" in window) && !("SpeechRecognition" in window)) { setRecStatus("error"); return; }
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         let captured = false;
+        let hardError = false; // true when mic is blocked — prevents auto-restart
         let silenceTimer = null;
         let allFinals = "";
         let sessionFinals = "";
@@ -581,20 +583,30 @@ const StudentQuiz = () => {
                             else { setAutoNextCountdown(count); }
                         }, 1000);
                     }
-                }, 2000);
+                }, 3000);
             };
 
-            rec.onerror = () => setRecStatus("error");
+            rec.onerror = (e) => {
+                const type = e.error;
+                // no-speech / aborted are expected — let onend restart silently
+                if (type === "no-speech" || type === "aborted") return;
+                // mic blocked or denied — stop retrying and show actionable error
+                if (type === "audio-capture" || type === "not-allowed" || type === "service-not-allowed") {
+                    hardError = true;
+                    setRecStatus("mic-blocked");
+                    return;
+                }
+                // network or unknown — let onend restart
+            };
 
             rec.onend = () => {
-                if (!captured) {
+                if (!captured && !hardError) {
                     if (sessionFinals) {
                         allFinals = [allFinals, sessionFinals].filter(Boolean).join(" ").trim();
                         sessionFinals = "";
                     }
-                    // For Android restart: create fresh instance AND start it immediately
                     setTimeout(() => {
-                        if (!captured) {
+                        if (!captured && !hardError) {
                             const next = makeSession();
                             recognitionRef.current = next;
                             next.start();
@@ -607,9 +619,19 @@ const StudentQuiz = () => {
             return rec;
         };
 
+        // "Try Again" button calls this to reset and restart after a mic-blocked error
+        retryRef.current = () => {
+            hardError = false;
+            captured = false;
+            setRecStatus("idle");
+            const next = makeSession();
+            recognitionRef.current = next;
+            next.start();
+        };
+
         setTranscript("");
         makeSession(); // create but do NOT start — startQuiz/handleNext starts it externally
-        return () => { captured = true; if (silenceTimer) clearTimeout(silenceTimer); recognitionRef.current?.stop(); };
+        return () => { captured = true; hardError = true; if (silenceTimer) clearTimeout(silenceTimer); recognitionRef.current?.stop(); };
     }, [currentIndex, started, currentQuestion]);
 
     const startQuiz = async () => {
@@ -942,7 +964,19 @@ const StudentQuiz = () => {
                             </div>
                         ) : recStatus === "error" ? (
                             <div style={{ background:"#fff3cd", color:"#856404", borderRadius:50, padding:"10px 24px", fontFamily:"'Nunito', sans-serif", fontWeight:700, fontSize:"1rem" }}>
-                                😕 Mic not found. Check permissions!
+                                😕 Speech not supported on this browser.
+                            </div>
+                        ) : recStatus === "mic-blocked" ? (
+                            <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:8 }}>
+                                <div style={{ background:"#ffe3e3", color:"#c92a2a", borderRadius:20, padding:"10px 24px", fontFamily:"'Nunito', sans-serif", fontWeight:700, fontSize:"1rem", textAlign:"center" }}>
+                                    🎤 Mic blocked! Please allow mic access in your browser.
+                                </div>
+                                <button
+                                    onClick={() => retryRef.current?.()}
+                                    style={{ background:"linear-gradient(135deg,#f76707,#fd7e14)", color:"white", border:"none", borderRadius:50, padding:"10px 28px", fontFamily:"'Fredoka One', cursive", fontSize:"1rem", cursor:"pointer", boxShadow:"0 4px 12px rgba(247,103,7,0.4)" }}
+                                >
+                                    🎤 Try Again!
+                                </button>
                             </div>
                         ) : recStatus === "listening" && !isPreTest && !isPostTest ? (
                             <div className="listening-indicator" style={{ background:"linear-gradient(135deg,#ff6b6b,#ee1818)", color:"white", borderRadius:50, padding:"12px 28px", fontFamily:"'Fredoka One', cursive", fontSize:"1.2rem", display:"flex", alignItems:"center", gap:10, boxShadow:"0 4px 16px rgba(255,107,107,0.5)" }}>

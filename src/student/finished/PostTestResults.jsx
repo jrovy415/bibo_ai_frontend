@@ -1,15 +1,16 @@
+import { useState } from "react";
 import { StarRow, getStarCount } from "./finishedUtils";
 import axios from "../../../plugins/axios";
 
-// Results page for any PostTest quiz (EasyPostTest, MediumPostTest, …, PostTest).
-// Shows score + champion card + overall journey average + finish/logout button.
 const PostTestResults = ({
   quizData, pctNum, progressWidth, starCount,
   barColor, borderColor, display,
   isFinalPostTest,
   journeyLoading, takenLevels, journeyOverallPct,
-  authUser, attemptId, navigate,
+  authUser, attemptId, navigate, answers,
 }) => {
+  const [showAnswers, setShowAnswers] = useState(false);
+
   const isPerfect  = pctNum >= 100;
   const isGreat    = pctNum >= 75;
   const percentage = pctNum.toFixed(1);
@@ -23,6 +24,16 @@ const PostTestResults = ({
     localStorage.removeItem('APP_STUDENT');
     window.location.href = '/login';
   };
+
+  const questions = quizData.questions ?? [];
+  const answerReview = questions.map((q, i) => {
+    const ans = (answers ?? []).find(a => String(a.question_id) === String(q.id));
+    const spoken = (ans?.choice_string || ans?.transcript || "").trim();
+    const correctChoice = q.choices?.find(c => c.is_correct);
+    const wordScore = ans?.word_score ?? null;
+    const matchPct = wordScore !== null ? wordScore : null;
+    return { num: i + 1, questionText: q.question_text, spoken, correctAnswer: correctChoice?.choice_text || "", matchPct };
+  });
 
   return (
     <div className="finished-root">
@@ -76,12 +87,59 @@ const PostTestResults = ({
             </p>
           )}
         </div>
+
+        {/* ── Answer Review Toggle ── */}
+        {answerReview.length > 0 && (
+          <div style={{ width:"100%", maxWidth:400, marginTop:12 }}>
+            <button
+              onClick={() => setShowAnswers(s => !s)}
+              style={{ width:"100%", fontFamily:"'Fredoka One',cursive", fontSize:"clamp(14px,3vw,17px)", background: showAnswers ? "linear-gradient(135deg,#845ef7,#5c3fa3)" : "linear-gradient(135deg,#74c0fc,#4dabf7)", color:"white", border:"none", borderRadius:50, padding:"12px 24px", cursor:"pointer", boxShadow:"0 4px 12px rgba(0,0,0,0.15)", marginBottom: showAnswers ? 10 : 0 }}
+            >
+              {showAnswers ? "🙈 Hide Answers" : "👀 See My Answers!"}
+            </button>
+
+            {showAnswers && (
+              <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                {answerReview.map(item => {
+                  const isGood = item.matchPct !== null ? item.matchPct >= 75 : false;
+                  const isOkay = item.matchPct !== null ? item.matchPct >= 40 : false;
+                  const bg     = isGood ? "#ebfbee" : isOkay ? "#fff9db" : "#fff5f5";
+                  const bdr    = isGood ? "#69db7c" : isOkay ? "#ffd43b" : "#ffa8a8";
+                  const emoji  = isGood ? "✅" : isOkay ? "🌟" : "❌";
+                  const label  = isGood ? "Great!" : isOkay ? "Almost!" : "Keep Trying!";
+                  return (
+                    <div key={item.num} style={{ background:bg, border:`2px solid ${bdr}`, borderRadius:16, padding:"12px 14px" }}>
+                      <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:15, color:"#5b4e75", marginBottom:4, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                        <span>{emoji} Question {item.num}</span>
+                        {item.matchPct !== null && (
+                          <span style={{ fontSize:13, background:bdr+"33", color:"#333", borderRadius:20, padding:"2px 10px" }}>{item.matchPct}% match</span>
+                        )}
+                      </div>
+                      {item.questionText && (
+                        <div style={{ fontSize:12, color:"#555", marginBottom:4, fontWeight:700 }}>
+                          📖 {item.questionText}
+                        </div>
+                      )}
+                      <div style={{ fontSize:13, color:"#666", marginBottom:4 }}>
+                        🗣️ You said: <span style={{ color:"#5b4e75", fontWeight:800 }}>"{item.spoken || "nothing"}"</span>
+                      </div>
+                      {item.correctAnswer && (
+                        <div style={{ fontSize:13, color:"#2f9e44", fontWeight:800 }}>
+                          💡 Answer: "{item.correctAnswer}"
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ── RIGHT: Overall average + finish button ────────── */}
       <div className="right-col">
 
-        {/* Overall Average card */}
         {!journeyLoading && takenLevels.length > 1 && (
           <div style={{ background:"white", border:"3px solid #ffd700", borderRadius:20, padding:"20px 24px", textAlign:"center", boxShadow:"0 4px 20px rgba(255,215,0,0.25)", maxWidth:320, width:"100%" }}>
             <p style={{ margin:"0 0 4px", fontWeight:800, color:"#888", fontSize:"clamp(12px,2.5vw,14px)" }}>🏅 Overall Average</p>
