@@ -243,7 +243,7 @@ const StudentFinishedQuiz = () => {
   // ── Shared props for all result views ─────────────────────────
   const sharedProps = {
     quizData, pctNum, progressWidth, displayScore, starCount,
-    barColor, borderColor, display, navigate,
+    barColor, borderColor, display, navigate, answers,
   };
 
   return (

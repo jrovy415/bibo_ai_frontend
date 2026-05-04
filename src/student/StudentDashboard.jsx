@@ -310,16 +310,6 @@ const StudentDashboard = () => {
             {difficultyEmojis[currentDifficulty]||"📋"} Level: {difficultyLabels[currentDifficulty]||currentDifficulty}
           </span>
         </div>
-        <div style={{ marginTop:12, display:"flex", gap:4, justifyContent:"center", flexWrap:"wrap" }}>
-          {["Easy","EasyPostTest","Medium","MediumPostTest","Hard","HardPostTest","Expert","ExpertPostTest","PostTest"].map(level => {
-            const shortLabel= {Easy:"Low",EasyPostTest:"Low PT",Medium:"Mid",MediumPostTest:"Mid PT",Hard:"Hard",HardPostTest:"Hard PT",Expert:"Expert",ExpertPostTest:"Expert PT",PostTest:"Post"}[level];
-            return (
-              <div key={level} style={{ fontSize:10, fontWeight:800, padding:"3px 8px", borderRadius:20, background:"#f0f0f0", color:"#aaa", border:"2px solid #ddd" }}>
-                {difficultyEmojis[level]||"📋"} {shortLabel}
-              </div>
-            );
-          })}
-        </div>
       </div>
 
       <div className="quiz-area">
