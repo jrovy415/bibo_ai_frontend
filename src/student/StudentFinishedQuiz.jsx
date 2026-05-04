@@ -70,11 +70,11 @@ const StudentFinishedQuiz = () => {
     const fetchQuizResult = async () => {
       try {
         const res = await axios.get(`/quiz-attempts/${attemptId}`);
-        const { quiz, answers, score } = res.data.data;
+        const { quiz, answers: apiAnswers, score: apiScore } = res.data.data;
         if (!quiz) { applySnapshot(); return; }
         setQuizData(quiz);
-        setAnswers(answers ?? []);
-        setScore(score ?? (answers ?? []).filter(a => a.is_correct).length);
+        setAnswers(apiAnswers ?? []);
+        setScore(apiScore ?? (apiAnswers ?? []).filter(a => a.is_correct).length);
       } catch(err) {
         console.error(err);
         applySnapshot();

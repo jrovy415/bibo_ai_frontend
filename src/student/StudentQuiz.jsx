@@ -456,6 +456,7 @@ const StudentQuiz = () => {
     const recognitionRef     = useRef(null);
     const backgroundAudioRef = useRef(null);
     const autoNextRef        = useRef(null);
+    const countIntervalRef   = useRef(null);
 
     const answersRef = useRef({});
     useEffect(() => { answersRef.current = answers; }, [answers]);
@@ -565,9 +566,10 @@ const StudentQuiz = () => {
                     const capturedText = finalText;
                     let count = 3;
                     setAutoNextCountdown(count);
-                    const countInterval = setInterval(() => {
+                    clearInterval(countIntervalRef.current);
+                    countIntervalRef.current = setInterval(() => {
                         count -= 1;
-                        if (count <= 0) { clearInterval(countInterval); setAutoNextCountdown(null); autoNextRef.current?.(capturedText); }
+                        if (count <= 0) { clearInterval(countIntervalRef.current); setAutoNextCountdown(null); autoNextRef.current?.(capturedText); }
                         else { setAutoNextCountdown(count); }
                     }, 1000);
                 }
@@ -632,6 +634,8 @@ const StudentQuiz = () => {
     };
 
     const handleFinish = async (fromTimer = false, finalAnswers = null) => {
+        clearInterval(countIntervalRef.current);
+        setAutoNextCountdown(null);
         if (backgroundAudioRef.current) {
             backgroundAudioRef.current.pause();
             backgroundAudioRef.current.currentTime = 0;
@@ -681,7 +685,6 @@ const StudentQuiz = () => {
             }
             const percentage = count > 0 ? totalPct / count : 0;
             const newLevel   = getPlacementLevel(percentage);
-            console.log(`Pre-test placement: ${percentage.toFixed(1)}% → ${newLevel}`);
             axios.patch(`/students/${authUser.id}`, { difficulty: newLevel }).catch(console.error);
         }
 
@@ -697,6 +700,7 @@ const StudentQuiz = () => {
     };
 
     const handleNext = () => {
+        clearInterval(countIntervalRef.current);
         setButtonDisabled(true);
         setAutoNextCountdown(null);
         stopSpeaking();

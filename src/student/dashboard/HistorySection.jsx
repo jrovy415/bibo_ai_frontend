@@ -24,7 +24,11 @@ const HistorySection = ({ studentId }) => {
   }, [studentId]);
 
   if (loading) return <div style={{ textAlign:"center", padding:20 }}><Spin size="small"/></div>;
-  if (attempts.length === 0) return null;
+  if (attempts.length === 0) return (
+    <div style={{ textAlign:"center", padding:"24px 16px", color:"#aaa", fontFamily:"'Fredoka One',cursive", fontSize:16 }}>
+      📭 No reading history yet.
+    </div>
+  );
 
   // Group into takes: new take starts when Introduction appears after a PostTest
   const takes = [];

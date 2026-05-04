@@ -49,7 +49,6 @@ const StudentDashboard = () => {
       try {
         const diffRes = await axios.get(`/students/${authUser.id}/difficulty`);
         const diff    = diffRes.data.data?.difficulty || "Introduction";
-        console.log("🔍 Current difficulty from backend:", diff);
         setCurrentDifficulty(diff);
 
         // Only check history if difficulty is Introduction.
